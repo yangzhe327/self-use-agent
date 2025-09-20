@@ -1,0 +1,2 @@
+dashscope
+prompt_toolkit
