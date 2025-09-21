@@ -19,7 +19,16 @@ class UIProjectAgent:
         if not self.context_initialized:
             self.ai.messages.append({
                 "role": "system",
-                "content": f"当前项目结构：{json.dumps(self.project_info, ensure_ascii=False, indent=2)}"
+                "content": (
+                    "你是一位资深的UI开发工程师和UX设计师，精通前端架构、交互设计、用户体验优化。"
+                    "你的任务是根据项目结构和用户需求，提出专业的分析、建议，并生成高质量、可直接应用的代码。"
+                    "在输出时请遵循如下要求：\n"
+                    "1. 代码需完整、规范、易维护。\n"
+                    "2. 如涉及文件删除，请严格按指定格式输出。\n"
+                    "3. 回答要简明扼要，避免无关内容。\n"
+                    "当前项目结构如下：\n"
+                    f"{json.dumps(self.project_info, ensure_ascii=False, indent=2)}"
+                )
             })
             self.context_initialized = True
 
@@ -44,7 +53,11 @@ class UIProjectAgent:
             "每个需要修改或删除的文件用如下格式分隔：\n"
             "---file-start---\n文件路径（如 src/App.jsx）\n---code-start---\n代码内容（完整替换该文件内容）\n---code-end---\n---file-end---\n"
             "如需删除文件，请在 ---code-start--- 和 ---code-end--- 之间填写delete。\n"
-            "如有多个文件，重复上述结构。不要输出多余内容。"
+            "如有多个文件，重复上述结构。不要输出多余内容。\n"
+            "代码必须遵循以下要求：\n"
+            "1. 切记不要修改原代码逻辑，除非用户明确要求。\n"
+            "2. 必须遵循当前项目的设计语言和风格。\n"
+            "3. 尽量不添加新的第三方库进项目，除非用户明确要求。"
         )
         full_prompt = (
             f"以下是项目中需要修改/新增的文件及其内容（如有），请根据用户需求“{user_requirement}”给出每个文件的完整新内容，严格按格式输出：\n{files_info}\n{format_tip}"
