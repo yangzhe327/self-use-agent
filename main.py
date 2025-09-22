@@ -20,13 +20,12 @@ class UIProjectAgent:
             self.ai.messages.append({
                 "role": "system",
                 "content": (
-                    "你是一位资深的UI开发工程师和UX设计师，精通前端架构、交互设计、用户体验优化。"
-                    "你的任务是根据项目结构和用户需求，提出专业的分析、建议，并生成高质量、可直接应用的代码。"
-                    "在输出时请遵循如下要求：\n"
-                    "1. 代码需完整、规范、易维护。\n"
-                    "2. 如涉及文件删除，请严格按指定格式输出。\n"
-                    "3. 回答要简明扼要，避免无关内容。\n"
-                    "当前项目结构如下：\n"
+                    "You are a senior UI developer and UX designer, expert in front-end architecture, interaction design, and user experience optimization. "
+                    "Your task is to provide professional analysis and suggestions based on the project structure and user requirements, and generate high-quality, directly applicable code. "
+                    "When outputting, please follow these requirements:\n"
+                    "1. Code must be complete, standardized, and maintainable.\n"
+                    "2. Responses should be concise and avoid irrelevant content.\n"
+                    "Current project structure:\n"
                     f"{json.dumps(self.project_info, ensure_ascii=False, indent=2)}"
                 )
             })
@@ -34,9 +33,9 @@ class UIProjectAgent:
 
     def modify_project(self, user_requirement):
         self.analyze_project()
-        print("AI正在分析需要修改/新增的文件...")
-        ai_file_list = self.ai.ask(f"请根据当前项目结构和如下需求，列出所有需要修改或新增的文件路径（如 src/App.jsx），只输出文件路径列表，不要输出其他内容：\n{user_requirement}")
-        print("AI建议需要修改/新增的文件：")
+        print("AI is analyzing files that need to be modified...")
+        ai_file_list = self.ai.ask(f"Based on the current project structure and the following requirements, list all file paths that need to be modified or added or deleted (e.g., src/App.jsx), output only the file path list, no other content:\n{user_requirement}")
+        print("Files AI suggests modifying:")
         print(ai_file_list)
         file_paths = [line.strip() for line in ai_file_list.split('\n') if line.strip()]
         file_contents = []
@@ -46,32 +45,32 @@ class UIProjectAgent:
             if content:
                 file_contents.append(f"---file-start---\n{path}\n---code-start---\n{content}\n---code-end---\n---file-end---")
             else:
-                file_contents.append(f"---file-start---\n{path}\n---code-start---\n(文件不存在，请生成新文件内容)\n---code-end---\n---file-end---")
+                file_contents.append(f"---file-start---\n{path}\n---code-start---\n(File does not exist, please generate new file content)\n---code-end---\n---file-end---")
         files_info = '\n'.join(file_contents)
         format_tip = (
-            "请严格按照如下格式回复：\n"
-            "每个需要修改或删除的文件用如下格式分隔：\n"
-            "---file-start---\n文件路径（如 src/App.jsx）\n---code-start---\n代码内容（完整替换该文件内容）\n---code-end---\n---file-end---\n"
-            "如需删除文件，请在 ---code-start--- 和 ---code-end--- 之间填写delete。\n"
-            "如有多个文件，重复上述结构。不要输出多余内容。\n"
-            "代码必须遵循以下要求：\n"
-            "1. 切记不要修改原代码逻辑，除非用户明确要求。\n"
-            "2. 必须遵循当前项目的设计语言和风格。\n"
-            "3. 尽量不添加新的第三方库进项目，除非用户明确要求。"
+            "Please strictly follow this format for replies:\n"
+            "Each file that needs to be modified or added or deleted should be separated with the following format:\n"
+            "---file-start---\nFile path (e.g., src/App.jsx)\n---code-start---\nCode content (completely replace the file content)\n---code-end---\n---file-end---\n"
+            "To delete a file, fill in 'delete' between ---code-start--- and ---code-end---.\n"
+            "For multiple files, repeat the above structure. Do not output extra content.\n"
+            "Code must follow these requirements:\n"
+            "1. Remember not to modify the original code logic unless explicitly requested by the user.\n"
+            "2. Must follow the design language and style of the current project.\n"
+            "3. Try not to add new third-party libraries to the project unless explicitly requested by the user."
         )
         full_prompt = (
-            f"以下是项目中需要修改/新增的文件及其内容（如有），请根据用户需求“{user_requirement}”给出每个文件的完整新内容，严格按格式输出：\n{files_info}\n{format_tip}"
+            f"Below are the files in the project that need to be modified/added/deleted and their content (if any). According to the user requirement '{user_requirement}', provide the complete new content for each file and output strictly in the specified format:\n{files_info}\n{format_tip}"
         )
-        print("\nAI建议的具体修改：")
+        print("\nAI's specific modification suggestions:")
         ai_response = self.ai.ask(full_prompt)
-        apply = input("是否将上述修改应用到项目？(y/n)：").strip().lower()
+        apply = input("Apply the above modifications to the project? (y/n): ").strip().lower()
         if apply == 'y':
             self.apply_ai_changes(ai_response)
         else:
-            print("已跳过自动应用修改。")
+            print("Skipped automatically applying modifications.")
 
     def apply_ai_changes(self, ai_response):
-        print("正在应用AI建议到项目...")
+        print("Applying AI suggestions to the project...")
         files = ai_response.split('---file-start---')
         files_changed = False
         structure_changed = False
@@ -86,50 +85,50 @@ class UIProjectAgent:
                 rel_path = path_part.split('\n')[0].strip()
                 abs_path = os.path.join(self.project_path, rel_path)
                 
-                # 判断操作类型
+                # Determine operation type
                 if code_part.lower().strip() == "delete":
-                    # 删除文件操作
+                    # File deletion operation
                     if os.path.exists(abs_path):
                         os.remove(abs_path)
-                        structure_changed = True  # 结构发生变化
+                        structure_changed = True  # Structure has changed
                         files_changed = True
                     else:
-                        print(f"文件不存在，无法删除: {abs_path}")
+                        print(f"File does not exist, cannot delete: {abs_path}")
                 else:
-                    # 创建或修改文件操作
+                    # Create or modify file operation
                     old_exists = os.path.exists(abs_path)
                     FileOperator.write_code_to_file(abs_path, code_part)
                     files_changed = True
                     
-                    # 如果是新创建的文件，则结构发生变化
+                    # If it's a newly created file, structure has changed
                     if not old_exists:
                         structure_changed = True
                         
             except Exception as e:
-                print(f"解析AI回复时出错: {e}")
+                print(f"Error parsing AI response: {e}")
         
-        # 只有在文件结构发生变化时才重新分析项目
+        # Only re-analyze the project when file structure changes
         if structure_changed:
-            print("检测到文件结构变更，重新分析项目结构...")
+            print("Detected file structure changes, re-analyzing project structure...")
             self.analyze_project()
         elif files_changed:
-            print("文件内容已更新。")
+            print("File content has been updated.")
             
-        print("应用完成！")
+        print("Application completed!")
 
 def main():
-    project_path = input("请输入你的UI项目根目录路径：").strip()
+    project_path = input("Please enter the root directory path of your UI project: ").strip()
     if not os.path.isdir(project_path):
-        print("项目路径不存在！")
+        print("Project path does not exist!")
         return
     agent = UIProjectAgent(project_path=project_path)
     agent.analyze_project()
-    print("\nAI建议的安装和运行方法：")
-    install_prompt = "请根据当前项目结构，给出详细的安装和运行步骤（包括依赖安装、启动命令等），并说明注意事项。切记只做分析不要提出修改意见"
+    print("\nAI's suggested installation and running methods:")
+    install_prompt = "Based on the current project structure, provide detailed installation and running steps (including dependency installation, startup commands, etc.), and explain precautions. Remember to only do analysis without proposing modifications"
     agent.ai.ask(install_prompt)
-    print("\n欢迎使用 UI 项目分析与自动修改 Agent，输入你的新需求，exit 退出。")
+    print("\nWelcome to the UI Project Analysis and Auto-modification Agent. Enter your new requirements, 'exit' to quit.")
     while True:
-        user_input = input("你的需求：")
+        user_input = input("Your requirement: ")
         if user_input.strip().lower() == "exit":
             break
         agent.modify_project(user_input)

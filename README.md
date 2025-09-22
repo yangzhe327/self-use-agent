@@ -1,31 +1,31 @@
-# 前端 自动修改 Agent
+# Frontend Auto-modification Agent
 
-## 功能简介
-- 命令行交互，自动修改前端项目
-- 调用 AI 接口自动生成代码和任务
-- 自动拆分任务并检查完成情况
+## Function Introduction
+- Command-line interaction, automatically modifies frontend projects
+- Calls AI interface to automatically generate code and tasks
+- Automatically splits tasks and checks completion status
 
-## 使用方法
-1. 安装依赖
+## Usage
+1. Install dependencies
    ```bash
    pip install -r requirements.txt
-   # 或直接安装 dashscope
+   # Or directly install dashscope
    pip install dashscope
    ```
-2. 配置通义千问 API Key
-   - 设置环境变量 `QWEN_API_KEY`，或在 `main.py` 中直接填写
-3. 运行 agent
+2. Configure Qwen API Key
+   - Set environment variable `QWEN_API_KEY`, or directly fill it in `main.py`
+3. Run agent
    ```bash
    python main.py
    ```
-4. 按提示输入指令
+4. Enter commands as prompted
 
-## 依赖环境
+## Dependencies
 - Python 3.8+
 - Node.js
 - npm
 
-## 注意事项
-- 支持所有前端项目
-- 需联网以调用 OpenAI API
-- 代码自动写入需人工确认
+## Notes
+- Supports all frontend projects
+- Requires internet connection to call OpenAI API
+- Automatic code writing requires manual confirmation

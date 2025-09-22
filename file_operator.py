@@ -6,7 +6,7 @@ class FileOperator:
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(code)
-        print(f"已写入文件: {file_path}")
+        print(f"File written: {file_path}")  # Optimized translation from "已写入文件" to "File written" for better English technical expression
 
     @staticmethod
     def read_file(file_path):
