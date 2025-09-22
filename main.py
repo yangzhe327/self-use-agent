@@ -73,6 +73,9 @@ class UIProjectAgent:
     def apply_ai_changes(self, ai_response):
         print("正在应用AI建议到项目...")
         files = ai_response.split('---file-start---')
+        files_changed = False
+        structure_changed = False
+        
         for file_block in files:
             file_block = file_block.strip()
             if not file_block:
@@ -82,23 +85,37 @@ class UIProjectAgent:
                 code_part = file_block.split('---code-start---')[1].split('---code-end---')[0].strip()
                 rel_path = path_part.split('\n')[0].strip()
                 abs_path = os.path.join(self.project_path, rel_path)
+                
+                # 判断操作类型
                 if code_part.lower().strip() == "delete":
-                    self.delete_file(abs_path)
+                    # 删除文件操作
+                    if os.path.exists(abs_path):
+                        os.remove(abs_path)
+                        structure_changed = True  # 结构发生变化
+                        files_changed = True
+                    else:
+                        print(f"文件不存在，无法删除: {abs_path}")
                 else:
+                    # 创建或修改文件操作
+                    old_exists = os.path.exists(abs_path)
                     FileOperator.write_code_to_file(abs_path, code_part)
+                    files_changed = True
+                    
+                    # 如果是新创建的文件，则结构发生变化
+                    if not old_exists:
+                        structure_changed = True
+                        
             except Exception as e:
                 print(f"解析AI回复时出错: {e}")
+        
+        # 只有在文件结构发生变化时才重新分析项目
+        if structure_changed:
+            print("检测到文件结构变更，重新分析项目结构...")
+            self.analyze_project()
+        elif files_changed:
+            print("文件内容已更新。")
+            
         print("应用完成！")
-
-    def delete_file(self, abs_path):
-        try:
-            if os.path.exists(abs_path):
-                os.remove(abs_path)
-                print(f"已删除文件: {abs_path}")
-            else:
-                print(f"文件不存在，无法删除: {abs_path}")
-        except Exception as e:
-            print(f"删除文件时出错: {e}")
 
 def main():
     project_path = input("请输入你的UI项目根目录路径：").strip()
