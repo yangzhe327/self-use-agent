@@ -36,10 +36,7 @@ class UIProjectAgent:
 
     def modify_project(self, user_requirement):
         self.analyze_project()
-        print("AI正在分析需要修改/新增的文件...")
         ai_file_list = self.ai.ask(f"请根据当前项目结构和如下需求，列出所有需要修改或新增的文件路径（如 src/App.jsx），只输出文件路径列表，不要输出其他内容：\n{user_requirement}")
-        print("AI建议需要修改/新增的文件：")
-        print(ai_file_list)
         file_paths = [line.strip() for line in ai_file_list.split('\n') if line.strip()]
         file_contents = []
         for path in file_paths:
@@ -64,8 +61,9 @@ class UIProjectAgent:
         full_prompt = (
             f"以下是项目中需要修改/新增的文件及其内容（如有），请根据用户需求“{user_requirement}”给出每个文件的完整新内容，严格按格式输出：\n{files_info}\n{format_tip}"
         )
-        print("\nAI建议的具体修改：")
         ai_response = self.ai.ask(full_prompt)
+        print("AI建议需要修改/新增的文件：")
+        print(ai_file_list)
         apply = input("是否将上述修改应用到项目？(y/n)：").strip().lower()
         if apply == 'y':
             self.apply_ai_changes(ai_response)
@@ -322,7 +320,6 @@ def main():
             pass
     
     # 然后进行项目分析并进入修改模式
-    agent.analyze_project()
     print("\n欢迎使用 UI 项目分析与自动修改 Agent，输入你的新需求，exit 退出。")
     while True:
         user_input = input("你的需求：").strip()

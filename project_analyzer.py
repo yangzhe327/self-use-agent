@@ -10,7 +10,7 @@ class ProjectAnalyzer:
         self.project_info['package'] = self.read_file('package.json')
         self.project_info['config'] = self.read_file('vite.config.js')
         self.project_info['app'] = self.read_file('src/App.jsx')
-        self.project_info['main'] = self.read_file('src/pages/main.jsx')
+        self.project_info['main'] = self.read_file('src/main.jsx')
         self.project_info['pages'] = self.find_files('src/pages', ['.js', '.jsx'])
         self.project_info['components'] = self.find_files('src/components', ['.js', '.jsx'])
         return self.project_info

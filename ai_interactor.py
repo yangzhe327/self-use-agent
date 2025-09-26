@@ -12,14 +12,19 @@ class AIInteractor:
         response = dashscope.Generation.call(
             model="qwen3-coder-plus",
             messages=self.messages,
-            stream=True
+            stream=True,
+            result_format='message'  # 添加result_format参数
         )
+
         content = ""
         for resp in response:
-            if hasattr(resp, 'output') and 'choices' in resp.output:
+            if resp.status_code == 200 and hasattr(resp, 'output') and 'choices' in resp.output:
                 delta = resp.output['choices'][0]['message'].get('content', '')
-                print(delta, end='', flush=True)
+                # print(delta, end='', flush=True)
                 content += delta
+            else:
+                # 处理可能的错误情况
+                print(f"Error in response: {resp}")
         print()
         self.messages.append({"role": "assistant", "content": content.strip()})
         return content.strip()
