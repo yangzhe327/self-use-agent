@@ -28,3 +28,12 @@ class AIInteractor:
         print()
         self.messages.append({"role": "assistant", "content": content.strip()})
         return content.strip()
+    
+    def remove_last_interaction(self):
+        """
+        移除最近一次的用户提问和AI回答，用于用户拒绝AI建议的场景
+        """
+        if len(self.messages) >= 2:
+            # 移除最后两条消息（AI的回答和用户的提问）
+            self.messages.pop()  # AI的回答
+            self.messages.pop()  # 用户的提问

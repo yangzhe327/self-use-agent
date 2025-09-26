@@ -69,6 +69,9 @@ class UIProjectAgent:
             self.apply_ai_changes(ai_response)
         else:
             print("已跳过自动应用修改。")
+            # 用户拒绝应用修改时，清除相关的两次对话历史（文件列表请求+具体内容请求）
+            self.ai.remove_last_interaction()  # 清除具体内容请求的对话历史
+            self.ai.remove_last_interaction()  # 清除文件列表请求的对话历史
 
     def apply_ai_changes(self, ai_response):
         print("正在应用AI建议到项目...")
@@ -337,4 +340,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
