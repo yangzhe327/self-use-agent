@@ -1,5 +1,7 @@
 import os
 import json
+import subprocess
+import shutil
 from project_analyzer import ProjectAnalyzer
 from ai_interactor import AIInteractor
 from file_operator import FileOperator
@@ -13,6 +15,7 @@ class UIProjectAgent:
         self.ai = AIInteractor(QWEN_API_KEY)
         self.project_info = {}
         self.context_initialized = False
+        self.running_process = None
 
     def analyze_project(self):
         self.project_info = self.analyzer.analyze()
@@ -116,22 +119,225 @@ class UIProjectAgent:
             
         print("应用完成！")
 
+    def check_project_runnable(self):
+        """检查项目是否可以运行"""
+        package_json_content = self.analyzer.read_file('package.json')
+        if not package_json_content:
+            return False, "项目中没有找到 package.json 文件"
+        
+        try:
+            package_data = json.loads(package_json_content)
+            
+            if 'scripts' not in package_data:
+                return False, "package.json 中没有定义 scripts"
+            
+            # 检查是否有启动脚本
+            start_scripts = ['start', 'dev', 'serve']
+            for script in start_scripts:
+                if script in package_data['scripts']:
+                    return True, f"项目可以使用 'npm run {script}' 运行"
+            
+            return True, "项目包含 npm 脚本，可以运行"
+        except json.JSONDecodeError as e:
+            return False, f"package.json 文件格式错误: {str(e)}"
+        except Exception as e:
+            return False, f"检查项目时出错: {str(e)}"
+
+    def install_dependencies(self):
+        """安装项目依赖"""
+        print("正在安装项目依赖...")
+        try:
+            # 检查是否存在 package.json
+            package_json_path = os.path.join(self.project_path, 'package.json')
+            if not os.path.exists(package_json_path):
+                print("项目中没有找到 package.json 文件，无法安装依赖")
+                return False
+            
+            # 检查npm是否可用
+            npm_executable = self._find_npm_executable()
+            if not npm_executable:
+                print("未找到 npm 命令，请确保已安装 Node.js")
+                return False
+            
+            # 执行 npm install，确保在正确的项目目录下执行
+            cmd = [npm_executable, 'install']
+            print(f"执行命令: {' '.join(cmd)} 在目录: {self.project_path}")
+            result = subprocess.run(cmd, 
+                                  cwd=self.project_path,  # 确保在用户指定的项目目录下执行
+                                  capture_output=True, 
+                                  text=True)
+            
+            if result.returncode == 0:
+                print("依赖安装成功！")
+                return True
+            else:
+                print(f"依赖安装失败: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"安装依赖时出错: {str(e)}")
+            return False
+
+    def run_project(self):
+        """运行项目"""
+        try:
+            # 检查是否有项目正在运行
+            if self.running_process and self.running_process.poll() is None:
+                print("项目已在运行中，请先停止当前项目再启动新项目")
+                return
+            
+            # 检查npm是否可用
+            npm_executable = self._find_npm_executable()
+            if not npm_executable:
+                print("未找到 npm 命令，请确保已安装 Node.js")
+                return
+            
+            package_json_path = os.path.join(self.project_path, 'package.json')
+            if not os.path.exists(package_json_path):
+                print("项目中没有找到 package.json 文件")
+                return
+                
+            with open(package_json_path, 'r', encoding='utf-8') as f:
+                package_data = json.load(f)
+            
+            # 确定运行命令
+            scripts = package_data.get('scripts', {})
+            run_cmd = None
+            script_name = None
+            if 'start' in scripts:
+                script_name = 'start'
+                run_cmd = [npm_executable, 'run', 'start']
+            elif 'dev' in scripts:
+                script_name = 'dev'
+                run_cmd = [npm_executable, 'run', 'dev']
+            elif 'serve' in scripts:
+                script_name = 'serve'
+                run_cmd = [npm_executable, 'run', 'serve']
+            else:
+                # 如果没有预定义的脚本，使用默认的启动命令
+                script_name = 'start'
+                run_cmd = [npm_executable, 'start']
+            
+            print(f"正在启动项目: {' '.join(run_cmd)}")
+            print("项目将在新窗口中运行，您可以通过 Ctrl+C 停止项目")
+            print("您也可以在agent中输入 'stop' 来停止项目")
+            
+            # 检查脚本是否在package.json中定义
+            if script_name not in scripts:
+                print(f"警告: package.json 中未定义 '{script_name}' 脚本")
+            
+            # 在新窗口中运行项目，使其可见且可以使用Ctrl+C停止
+            # Windows系统使用start命令在新窗口中运行
+            cmd_string = ' '.join(run_cmd)
+            # 使用 /d 参数确保正确切换驱动器和目录
+            self.running_process = subprocess.Popen(
+                f'start "Project Runner" cmd /k "cd /d \"{self.project_path}\" && {cmd_string}"',
+                shell=True
+            )
+            
+            print("项目已启动，请查看新打开的窗口")
+        except json.JSONDecodeError as e:
+            print(f"package.json 文件格式错误: {str(e)}")
+        except Exception as e:
+            print(f"运行项目时出错: {str(e)}")
+
+    def stop_project(self):
+        """停止正在运行的项目"""
+        if self.running_process and self.running_process.poll() is None:
+            self.running_process.terminate()
+            try:
+                self.running_process.wait(timeout=5)
+                print("项目已停止")
+            except subprocess.TimeoutExpired:
+                self.running_process.kill()
+                print("项目无响应，已强制停止")
+            self.running_process = None
+        else:
+            print("没有正在运行的项目")
+
+    def _find_npm_executable(self):
+        """查找npm可执行文件的完整路径"""
+        try:
+            # 首先尝试使用shutil.which查找
+            npm_path = shutil.which('npm')
+            if npm_path:
+                return npm_path
+            
+            # 在Windows上，也尝试查找npm.cmd
+            npm_cmd_path = shutil.which('npm.cmd')
+            if npm_cmd_path:
+                return npm_cmd_path
+                
+            return None
+        except Exception:
+            return None
+
+    def analyze_failure_reason(self, message):
+        """分析项目无法运行的原因"""
+        # 准备项目信息供AI分析
+        project_info = self.analyzer.analyze()
+        project_context = json.dumps(project_info, ensure_ascii=False, indent=2)
+        
+        # 询问AI分析原因
+        analysis_prompt = (
+            f"项目无法运行，错误信息是：{message}\n"
+            f"项目结构信息：\n{project_context}\n"
+            "请分析项目无法运行的具体原因，并判断是否因为缺少依赖导致。\n"
+            "如果是缺少依赖导致的，请回复'依赖问题'；如果是其他原因，请给出详细解释。\n"
+            "只输出分析结果，不要输出其他内容。"
+        )
+        
+        analysis_result = self.ai.ask(analysis_prompt)
+        return analysis_result.strip()
+
 def main():
     project_path = input("请输入你的UI项目根目录路径：").strip()
     if not os.path.isdir(project_path):
         print("项目路径不存在！")
         return
     agent = UIProjectAgent(project_path=project_path)
+    
+    # 检查项目是否可以运行
+    runnable, message = agent.check_project_runnable()
+    if runnable:
+        print(f"项目检查完成: {message}")
+        run_choice = input("是否要运行项目？(y/n): ").strip().lower()
+        if run_choice == 'y':
+            agent.run_project()
+    else:
+        print(f"项目暂时无法运行: {message}")
+        # 让AI分析具体原因
+        analysis_result = agent.analyze_failure_reason(message)
+        print(f"AI分析结果: {analysis_result}")
+        
+        # 根据AI分析结果决定下一步操作
+        if "依赖问题" in analysis_result or "依赖" in analysis_result:
+            install_choice = input("是否要安装项目依赖？(y/n): ").strip().lower()
+            if install_choice == 'y':
+                if agent.install_dependencies():
+                    run_choice = input("依赖安装成功，是否要运行项目？(y/n): ").strip().lower()
+                    if run_choice == 'y':
+                        agent.run_project()
+        else:
+            # 如果不是依赖问题，则已经由AI给出了详细解释，用户可以自行决定是否继续
+            pass
+    
+    # 然后进行项目分析并进入修改模式
     agent.analyze_project()
-    print("\nAI建议的安装和运行方法：")
-    install_prompt = "请根据当前项目结构，给出详细的安装和运行步骤（包括依赖安装、启动命令等），并说明注意事项。切记只做分析不要提出修改意见"
-    agent.ai.ask(install_prompt)
     print("\n欢迎使用 UI 项目分析与自动修改 Agent，输入你的新需求，exit 退出。")
     while True:
-        user_input = input("你的需求：")
-        if user_input.strip().lower() == "exit":
+        user_input = input("你的需求：").strip()
+        if user_input.lower() == "exit":
+            # 停止正在运行的项目
+            agent.stop_project()
             break
+        elif user_input.lower() == "stop":
+            agent.stop_project()
+            continue
+        elif user_input.lower() == "start":
+            agent.run_project()
+            continue
         agent.modify_project(user_input)
 
 if __name__ == "__main__":
     main()
+
