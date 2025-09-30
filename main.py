@@ -13,6 +13,7 @@ class UIProjectAgent:
         self.project_path = project_path
         self.analyzer = ProjectAnalyzer(project_path)
         self.ai = AIInteractor(QWEN_API_KEY)
+        self.ai.set_agent(self)  # 设置 agent 引用
         self.project_info = {}
         self.context_initialized = False
         self.running_process = None
@@ -36,7 +37,11 @@ class UIProjectAgent:
 
     def modify_project(self, user_requirement):
         self.analyze_project()
-        ai_file_list = self.ai.ask(f"请根据当前项目结构和如下需求，列出所有需要修改或新增的文件路径（如 src/App.jsx），只输出文件路径列表，不要输出其他内容：\n{user_requirement}")
+        
+        # 使用ReAct策略生成文件列表
+        react_prompt = self._generate_react_prompt_for_file_list(user_requirement)
+        ai_file_list = self.ai.ask_with_react(react_prompt)
+        
         file_paths = [line.strip() for line in ai_file_list.split('\n') if line.strip()]
         file_contents = []
         for path in file_paths:
@@ -49,7 +54,7 @@ class UIProjectAgent:
         files_info = '\n'.join(file_contents)
         format_tip = (
             "请严格按照如下格式回复：\n"
-            "每个需要修改或删除的文件用如下格式分隔：\n"
+            "每个需要修改或删除或新增的文件用如下格式分隔：\n"
             "---file-start---\n文件路径（如 src/App.jsx）\n---code-start---\n代码内容（完整替换该文件内容）\n---code-end---\n---file-end---\n"
             "如需删除文件，请在 ---code-start--- 和 ---code-end--- 之间填写delete。\n"
             "如有多个文件，重复上述结构。不要输出多余内容。\n"
@@ -61,8 +66,12 @@ class UIProjectAgent:
         full_prompt = (
             f"以下是项目中需要修改/新增的文件及其内容（如有），请根据用户需求“{user_requirement}”给出每个文件的完整新内容，严格按格式输出：\n{files_info}\n{format_tip}"
         )
-        ai_response = self.ai.ask(full_prompt)
-        print("AI建议需要修改/新增的文件：")
+        
+        # 使用ReAct策略生成文件修改内容
+        react_modify_prompt = self._generate_react_prompt_for_modifications(full_prompt)
+        ai_response = self.ai.ask_with_react(react_modify_prompt)
+        
+        print("建议需要修改/新增的文件：")
         print(ai_file_list)
         apply = input("是否将上述修改应用到项目？(y/n)：").strip().lower()
         if apply == 'y':
@@ -73,8 +82,39 @@ class UIProjectAgent:
             self.ai.remove_last_interaction()  # 清除具体内容请求的对话历史
             self.ai.remove_last_interaction()  # 清除文件列表请求的对话历史
 
+    def _generate_react_prompt_for_file_list(self, user_requirement):
+        """
+        生成用于ReAct策略的文件列表生成提示
+        """
+        react_prompt = (
+            f"我想根据用户需求生成需要修改的文件列表。请使用ReAct策略来思考和行动。\n"
+            f"用户需求：{user_requirement}\n"
+            f"当前项目信息：{json.dumps(self.project_info, ensure_ascii=False, indent=2)}\n\n"
+            f"请按照以下格式进行推理和行动：\n"
+            f"Thought: 分析用户需求和项目结构，确定需要修改哪些文件\n"
+            f"Action: analyze_project()  # 可用的Action包括: analyze_project(), read_file(\"文件路径\"), write_file(\"文件路径\", \"文件内容\")\n"
+            f"Observation: 根据分析结果，列出需要修改或删除或新增的文件路径\n"
+            f"Final Answer: 只输出文件路径列表，每行一个文件路径（如 src/App.jsx），只输出文件路径列表，不输出其他内容"
+        )
+        return react_prompt
+
+    def _generate_react_prompt_for_modifications(self, full_prompt):
+        """
+        生成用于ReAct策略的文件修改内容生成提示
+        """
+        react_prompt = (
+            f"我想根据用户需求和文件内容生成具体的修改方案。请使用ReAct策略来思考和行动。\n"
+            f"任务描述：{full_prompt}\n\n"
+            f"请按照以下格式进行推理和行动：\n"
+            f"Thought: 分析用户需求和当前文件内容，确定如何修改\n"
+            f"Action: analyze_project()  # 可用的Action包括: analyze_project(), read_file(\"文件路径\"), write_file(\"文件路径\", \"文件内容\")\n"
+            f"Observation: 根据分析结果，生成符合要求的代码修改方案\n"
+            f"Final Answer: 严格按照指定格式输出文件修改内容"
+        )
+        return react_prompt
+
     def apply_ai_changes(self, ai_response):
-        print("正在应用AI建议到项目...")
+        print("正在应用建议到项目...")
         files = ai_response.split('---file-start---')
         files_changed = False
         structure_changed = False
@@ -109,7 +149,7 @@ class UIProjectAgent:
                         structure_changed = True
                         
             except Exception as e:
-                print(f"解析AI回复时出错: {e}")
+                print(f"解析回复时出错: {e}")
         
         # 只有在文件结构发生变化时才重新分析项目
         if structure_changed:
@@ -220,7 +260,7 @@ class UIProjectAgent:
             
             print(f"正在启动项目: {' '.join(run_cmd)}")
             print("项目将在新窗口中运行，您可以通过 Ctrl+C 停止项目")
-            print("您也可以在agent中输入 'stop' 来停止项目")
+            print("您也可以在cmd中输入 'stop' 来停止项目")
             
             # 检查脚本是否在package.json中定义
             if script_name not in scripts:
@@ -278,17 +318,54 @@ class UIProjectAgent:
         project_info = self.analyzer.analyze()
         project_context = json.dumps(project_info, ensure_ascii=False, indent=2)
         
-        # 询问AI分析原因
+        # 使用ReAct策略分析失败原因
         analysis_prompt = (
             f"项目无法运行，错误信息是：{message}\n"
             f"项目结构信息：\n{project_context}\n"
-            "请分析项目无法运行的具体原因，并判断是否因为缺少依赖导致。\n"
-            "如果是缺少依赖导致的，请回复'依赖问题'；如果是其他原因，请给出详细解释。\n"
+            "请使用ReAct策略分析项目无法运行的具体原因，并判断是否因为缺少依赖导致。\n"
+            "请按照以下格式进行推理和行动：\n"
+            "Thought: 分析错误信息和项目结构，确定可能的原因\n"
+            "Action: analyze_project_issues()\n"
+            "Observation: 根据分析结果，确定具体原因\n"
+            "Final Answer: 如果是缺少依赖导致的，请回复'依赖问题'；如果是其他原因，请给出详细解释。\n"
             "只输出分析结果，不要输出其他内容。"
         )
         
-        analysis_result = self.ai.ask(analysis_prompt)
+        analysis_result = self.ai.ask_with_react(analysis_prompt)
         return analysis_result.strip()
+
+    def _execute_action(self, action_name, args):
+        """
+        执行特定行动
+        """
+        try:
+            if action_name == "analyze_project":
+                self.analyze_project()
+                return "项目结构已分析并更新"
+                
+            elif action_name == "read_file" and args:
+                file_path = args[0]
+                abs_path = os.path.join(self.project_path, file_path)
+                if os.path.exists(abs_path):
+                    with open(abs_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return f"文件 {file_path} 的内容:\n{content[:1000]}..."  # 限制内容长度
+                else:
+                    return f"文件 {file_path} 不存在"
+                    
+            elif action_name == "write_file" and len(args) >= 2:
+                file_path = args[0]
+                content = args[1] if len(args) == 2 else ' '.join(args[1:])
+                abs_path = os.path.join(self.project_path, file_path)
+                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+                with open(abs_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                return f"文件 {file_path} 已写入"
+                
+            else:
+                return f"未知行动: {action_name} 或参数不足"
+        except Exception as e:
+            return f"执行行动时出错: {str(e)}"
 
 def main():
     project_path = input("请输入你的UI项目根目录路径：").strip()
@@ -308,7 +385,7 @@ def main():
         print(f"项目暂时无法运行: {message}")
         # 让AI分析具体原因
         analysis_result = agent.analyze_failure_reason(message)
-        print(f"AI分析结果: {analysis_result}")
+        print(f"分析结果: {analysis_result}")
         
         # 根据AI分析结果决定下一步操作
         if "依赖问题" in analysis_result or "依赖" in analysis_result:
@@ -323,23 +400,27 @@ def main():
             pass
     
     # 然后进行项目分析并进入修改模式
-    print("\n欢迎使用 UI 项目分析与自动修改 Agent，输入你的新需求，exit 退出。")
+    print("\n输入你的新需求，exit 退出")
     while True:
         user_input = input("你的需求：").strip()
         if user_input.lower() == "exit":
             # 停止正在运行的项目
             agent.stop_project()
             break
-        elif user_input.lower() == "stop":
-            agent.stop_project()
-            continue
-        elif user_input.lower() == "start":
-            agent.run_project()
-            continue
         agent.modify_project(user_input)
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
 
 
 
