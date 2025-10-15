@@ -1,5 +1,5 @@
 """
-项目命令处理模块
+Project Command Processing Module
 """
 
 import os
@@ -11,7 +11,7 @@ from utils.helpers import find_executable, run_subprocess_command
 
 
 class ProjectCommands:
-    """处理项目相关命令的类"""
+    """Class for handling project-related commands"""
     
     def __init__(self, project_path: str):
         self.project_path = project_path
@@ -19,83 +19,83 @@ class ProjectCommands:
         self.running_process: Optional[subprocess.Popen] = None
 
     def check_project_runnable(self) -> Tuple[bool, str]:
-        """检查项目是否可以运行"""
+        """Check if the project can be run"""
         package_json_content = self.analyzer.read_file('package.json')
         if not package_json_content:
-            return False, "项目中没有找到 package.json 文件"
+            return False, "package.json file not found in the project"
         
         try:
             package_data = json.loads(package_json_content)
             
             if 'scripts' not in package_data:
-                return False, "package.json 中没有定义 scripts"
+                return False, "No scripts defined in package.json"
             
-            # 检查是否有启动脚本
+            # Check for startup scripts
             start_scripts = ['start', 'dev', 'serve']
             for script in start_scripts:
                 if script in package_data['scripts']:
-                    return True, f"项目可以使用 'npm run {script}' 运行"
+                    return True, f"Project can be run using 'npm run {script}'"
             
-            return True, "项目包含 npm 脚本，可以运行"
+            return True, "Project contains npm scripts and can be run"
         except json.JSONDecodeError as e:
-            return False, f"package.json 文件格式错误: {str(e)}"
+            return False, f"package.json file format error: {str(e)}"
         except Exception as e:
-            return False, f"检查项目时出错: {str(e)}"
+            return False, f"Error checking project: {str(e)}"
 
     def install_dependencies(self) -> bool:
-        """安装项目依赖"""
-        print("正在安装项目依赖...")
+        """Install project dependencies"""
+        print("Installing project dependencies...")
         try:
-            # 检查是否存在 package.json
+            # Check if package.json exists
             package_json_path = os.path.join(self.project_path, 'package.json')
             if not os.path.exists(package_json_path):
-                print("项目中没有找到 package.json 文件，无法安装依赖")
+                print("package.json file not found in the project, cannot install dependencies")
                 return False
             
-            # 检查npm是否可用
+            # Check if npm is available
             npm_executable = find_executable('npm')
             if not npm_executable:
-                print("未找到 npm 命令，请确保已安装 Node.js")
+                print("npm command not found, please ensure Node.js is installed")
                 return False
             
-            # 执行 npm install，确保在正确的项目目录下执行
+            # Execute npm install, ensure it is executed in the correct project directory
             cmd = [npm_executable, 'install']
-            print(f"执行命令: {' '.join(cmd)} 在目录: {self.project_path}")
+            print(f"Executing command: {' '.join(cmd)} in directory: {self.project_path}")
             result = run_subprocess_command(cmd, cwd=self.project_path)
             
             if result.returncode == 0:
-                print("依赖安装成功！")
+                print("Dependencies installed successfully!")
                 return True
             else:
-                print(f"依赖安装失败: {result.stderr}")
+                print(f"Dependency installation failed: {result.stderr}")
                 return False
         except Exception as e:
-            print(f"安装依赖时出错: {str(e)}")
+            print(f"Error installing dependencies: {str(e)}")
             return False
 
     def run_project(self) -> None:
-        """运行项目"""
+        """Run project"""
         try:
-            # 检查是否有项目正在运行
+            # Check if there is a project running
             if self.running_process and self.running_process.poll() is None:
-                print("项目已在运行中，请先停止当前项目再启动新项目")
+                print("Project is already running, please stop the current project before starting a new project")
                 return
             
-            # 检查npm是否可用
+            # Check if npm is available
             npm_executable = find_executable('npm')
             if not npm_executable:
-                print("未找到 npm 命令，请确保已安装 Node.js")
+                print("npm command not found, please ensure Node.js is installed")
                 return
             
             package_json_path = os.path.join(self.project_path, 'package.json')
             if not os.path.exists(package_json_path):
-                print("项目中没有找到 package.json 文件")
+                print("package.json file not found in the project")
                 return
                 
             with open(package_json_path, 'r', encoding='utf-8') as f:
                 package_data = json.load(f)
             
-            # 确定运行命令
+            # Determine run command
             scripts = package_data.get('scripts', {})
             run_cmd = None
             script_name = None
@@ -109,43 +109,43 @@ class ProjectCommands:
                 script_name = 'serve'
                 run_cmd = [npm_executable, 'run', 'serve']
             else:
-                # 如果没有预定义的脚本，使用默认的启动命令
+                # If there are no predefined scripts, use the default startup command
                 script_name = 'start'
                 run_cmd = [npm_executable, 'start']
             
-            print(f"正在启动项目: {' '.join(run_cmd)}")
-            print("项目将在新窗口中运行，您可以通过 Ctrl+C 停止项目")
-            print("您也可以在cmd中输入 'stop' 来停止项目")
+            print(f"Starting project: {' '.join(run_cmd)}")
+            print("The project will run in a new window, you can stop the project with Ctrl+C")
+            print("You can also type 'stop' in cmd to stop the project")
             
-            # 检查脚本是否在package.json中定义
+            # Check if script is defined in package.json
             if script_name not in scripts:
-                print(f"警告: package.json 中未定义 '{script_name}' 脚本")
+                print(f"Warning: '{script_name}' script is not defined in package.json")
             
-            # 在新窗口中运行项目，使其可见且可以使用Ctrl+C停止
-            # Windows系统使用start命令在新窗口中运行
+            # Run the project in a new window, making it visible and stoppable with Ctrl+C
+            # Windows system uses start command to run in a new window
             cmd_string = ' '.join(run_cmd)
-            # 使用 /d 参数确保正确切换驱动器和目录
+            # Use /d parameter to ensure correct drive and directory switching
             self.running_process = subprocess.Popen(
                 f'start "Project Runner" cmd /k "cd /d \"{self.project_path}\" && {cmd_string}"',
                 shell=True
             )
             
-            print("项目已启动，请查看新打开的窗口")
+            print("Project started, please check the newly opened window")
         except json.JSONDecodeError as e:
-            print(f"package.json 文件格式错误: {str(e)}")
+            print(f"package.json file format error: {str(e)}")
         except Exception as e:
-            print(f"运行项目时出错: {str(e)}")
+            print(f"Error running project: {str(e)}")
 
     def stop_project(self) -> None:
-        """停止正在运行的项目"""
+        """Stop the running project"""
         if self.running_process and self.running_process.poll() is None:
             self.running_process.terminate()
             try:
                 self.running_process.wait(timeout=5)
-                print("项目已停止")
+                print("Project stopped")
             except subprocess.TimeoutExpired:
                 self.running_process.kill()
-                print("项目无响应，已强制停止")
+                print("Project unresponsive, forcefully stopped")
             self.running_process = None
         else:
-            print("没有正在运行的项目")
+            print("No project is running")

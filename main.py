@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-前端自动修改Agent主入口文件
+Frontend Auto-modification Agent Main Entry File
 """
 
 from agents.application import main

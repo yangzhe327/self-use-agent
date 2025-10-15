@@ -1,5 +1,5 @@
 """
-通用工具类
+General Utilities
 """
 
 import os
@@ -12,21 +12,21 @@ from pathlib import Path
 
 def validate_file_path(file_path: str, base_path: str) -> bool:
     """
-    验证文件路径是否在基础路径内，防止路径遍历攻击
+    Validate if the file path is within the base path to prevent path traversal attacks
     
     Args:
-        file_path: 要验证的文件路径
-        base_path: 基础路径（项目根目录）
+        file_path: The file path to validate
+        base_path: Base path (project root directory)
         
     Returns:
-        bool: 路径是否有效
+        bool: Whether the path is valid
     """
     try:
-        # 将路径解析为绝对路径
+        # Resolve paths to absolute paths
         abs_file_path = Path(file_path).resolve()
         abs_base_path = Path(base_path).resolve()
         
-        # 检查文件路径是否在基础路径内
+        # Check if file path is within base path
         return str(abs_file_path).startswith(str(abs_base_path))
     except Exception:
         return False
@@ -34,27 +34,27 @@ def validate_file_path(file_path: str, base_path: str) -> bool:
 
 def find_executable(executable_name: str) -> Optional[str]:
     """
-    查找可执行文件的完整路径
+    Find the full path of an executable file
     
     Args:
-        executable_name: 可执行文件名
+        executable_name: Executable file name
         
     Returns:
-        str: 可执行文件的完整路径，如果未找到则返回None
+        str: Full path of the executable file, returns None if not found
     """
     try:
-        # 首先尝试使用shutil.which查找
+        # First try to find using shutil.which
         executable_path = shutil.which(executable_name)
         if executable_path:
             return executable_path
         
-        # 在Windows上，也尝试查找.cmd版本
+        # On Windows, also try to find .cmd version
         if os.name == 'nt':
             executable_cmd_path = shutil.which(executable_name + '.cmd')
             if executable_cmd_path:
                 return executable_cmd_path
                 
-            # 尝试.bat版本
+            # Try .bat version
             executable_cmd_path = shutil.which(executable_name + '.bat')
             if executable_cmd_path:
                 return executable_cmd_path
@@ -70,15 +70,15 @@ def run_subprocess_command(
     timeout: Optional[int] = None
 ) -> subprocess.CompletedProcess:
     """
-    运行子进程命令
+    Run subprocess command
     
     Args:
-        command: 命令列表
-        cwd: 工作目录
-        timeout: 超时时间（秒）
+        command: Command list
+        cwd: Working directory
+        timeout: Timeout (seconds)
         
     Returns:
-        subprocess.CompletedProcess: 命令执行结果
+        subprocess.CompletedProcess: Command execution result
     """
     return subprocess.run(
         command,
@@ -91,13 +91,13 @@ def run_subprocess_command(
 
 def safe_json_loads(json_string: str) -> Optional[Any]:
     """
-    安全地解析JSON字符串
+    Safely parse JSON string
     
     Args:
-        json_string: JSON字符串
+        json_string: JSON string
         
     Returns:
-        解析后的对象，如果解析失败则返回None
+        Parsed object, returns None if parsing fails
     """
     try:
         return json.loads(json_string)

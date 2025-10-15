@@ -1,5 +1,5 @@
 """
-项目分析模块
+Project Analysis Module
 """
 
 import os
@@ -14,7 +14,7 @@ class ProjectAnalyzer:
     def __init__(self, project_path: str):
         self.project_path = project_path
         self.project_info: Dict[str, Any] = {}
-        # 可配置的文件和目录列表
+        # Configurable list of files and directories
         self.key_files = [
             'package.json',
             'vite.config.js',
@@ -37,36 +37,36 @@ class ProjectAnalyzer:
 
     def analyze(self) -> Dict[str, Any]:
         """
-        分析项目结构和关键文件
+        Analyze project structure and key files
         """
         try:
-            # 读取关键文件
+            # Read key files
             for file_name in self.key_files:
                 self.project_info[file_name] = self.read_file(file_name)
             
-            # 查找关键目录中的文件
+            # Find files in key directories
             for dir_name in self.key_directories:
                 self.project_info[dir_name] = self.find_files(dir_name, self.component_extensions)
             
-            # 特殊处理src目录中的常见结构
+            # Special handling of common structures in src directory
             src_subdirs = ['components', 'pages', 'views', 'routes', 'utils', 'hooks', 'services']
             for subdir in src_subdirs:
                 self.project_info[f'src/{subdir}'] = self.find_files(f'src/{subdir}', self.component_extensions)
             
             return self.project_info
         except Exception as e:
-            raise ProjectAnalysisError(f"项目分析失败: {str(e)}")
+            raise ProjectAnalysisError(f"Project analysis failed: {str(e)}")
 
     def find_files(self, folder: str, exts: List[str]) -> List[str]:
         """
-        查找指定目录中具有特定扩展名的文件
+        Find files with specific extensions in the specified directory
         
         Args:
-            folder: 要搜索的目录
-            exts: 文件扩展名列表
+            folder: Directory to search
+            exts: List of file extensions
             
         Returns:
-            List[str]: 找到的文件路径列表
+            List[str]: List of found file paths
         """
         result: List[str] = []
         abs_folder = os.path.join(self.project_path, folder)
@@ -79,19 +79,19 @@ class ProjectAnalyzer:
                     if any(f.endswith(ext) for ext in exts):
                         result.append(os.path.relpath(os.path.join(root, f), self.project_path))
         except Exception as e:
-            raise ProjectAnalysisError(f"搜索目录 '{folder}' 时出错: {str(e)}")
+            raise ProjectAnalysisError(f"Error searching directory '{folder}': {str(e)}")
             
         return result
 
     def read_file(self, rel_path: str) -> str:
         """
-        读取项目中的文件
+        Read file in the project
         
         Args:
-            rel_path: 相对于项目根目录的文件路径
+            rel_path: File path relative to project root directory
             
         Returns:
-            str: 文件内容，如果文件不存在或读取失败则返回空字符串
+            str: File content, returns empty string if file does not exist or reading fails
         """
         return FileOperator.read_file(
             os.path.join(self.project_path, rel_path),

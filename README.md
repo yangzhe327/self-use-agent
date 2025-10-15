@@ -1,93 +1,93 @@
-# 前端 自动修改 Agent
+# Frontend Auto-modification Agent
 
-## 功能简介
-- 命令行交互，自动修改前端项目
-- 调用 AI 接口自动生成代码和任务
-- 自动拆分任务并检查完成情况
+## Function Introduction
+- Command-line interaction, automatically modify frontend projects
+- Call AI interface to automatically generate code and tasks
+- Automatically split tasks and check completion status
 
-## 使用方法
-1. 安装依赖
+## Usage
+1. Install dependencies
    ```bash
    pip install -r requirements.txt
-   # 或直接安装 dashscope
+   # Or directly install dashscope
    pip install dashscope prompt_toolkit
    ```
-2. 配置通义千问 API Key
-   - 设置环境变量 `DASHSCOPE_API_KEY`，或在运行时按提示输入
-3. 运行 agent
+2. Configure Qwen API Key
+   - Set environment variable `DASHSCOPE_API_KEY`, or enter when prompted at runtime
+3. Run agent
    ```bash
    python main.py
    ```
-4. 按提示输入指令
+4. Enter commands as prompted
 
-## 依赖环境
+## Environment Requirements
 - Python 3.8+
 - Node.js
 - npm
 
-## 项目结构
+## Project Structure
 ```
 .
-├── core/                 # 核心模块
+├── core/                 # Core module
 │   ├── __init__.py
-│   ├── application.py    # 主应用类
-│   ├── ai_interactor.py  # AI交互模块
-│   ├── config.py         # 配置管理模块
-│   ├── file_operator.py  # 文件操作模块
-│   └── project_analyzer.py # 项目分析模块
-├── exceptions/           # 自定义异常模块
+│   ├── application.py    # Main application class
+│   ├── ai_interactor.py  # AI interaction module
+│   ├── config.py         # Configuration management module
+│   ├── file_operator.py  # File operation module
+│   └── project_analyzer.py # Project analysis module
+├── exceptions/           # Custom exception module
 │   ├── __init__.py
 │   └── project_exceptions.py
-├── utils/                # 工具模块
+├── utils/                # Utilities module
 │   ├── __init__.py
 │   └── helpers.py
-├── main.py               # 主程序入口
-├── requirements.txt      # 依赖列表
-└── README.md             # 说明文档
+├── main.py               # Main program entry
+├── requirements.txt      # Dependency list
+└── README.md             # Documentation
 ```
 
-## 核心功能
+## Core Features
 
-### 1. 项目分析
-自动分析前端项目结构，识别关键文件和目录。
+### 1. Project Analysis
+Automatically analyze frontend project structure and identify key files and directories.
 
-### 2. AI辅助开发
-通过ReAct模式与AI交互，生成高质量的代码修改建议。
+### 2. AI-assisted Development
+Interact with AI through ReAct mode to generate high-quality code modification suggestions.
 
-### 3. 安全的文件操作
-所有文件操作都会进行路径验证和自动备份，防止意外修改。
+### 3. Safe File Operations
+All file operations are verified and automatically backed up to prevent accidental modifications.
 
-### 4. 项目运行管理
-支持一键安装依赖和运行项目。
+### 4. Project Runtime Management
+Support one-click dependency installation and project execution.
 
-## 配置说明
+## Configuration Instructions
 
-### 环境变量
-- `DASHSCOPE_API_KEY`: 通义千问API密钥（必需）
+### Environment Variables
+- `DASHSCOPE_API_KEY`: Qwen API key (required)
 
-### 配置项
-- `model_name`: 使用的AI模型名称，默认为`qwen3-coder-plus`
-- `max_retries`: API调用最大重试次数，默认为3次
-- `timeout`: API调用超时时间，默认为30秒
+### Configuration Items
+- `model_name`: AI model name to use, default is `qwen3-coder-plus`
+- `max_retries`: Maximum API call retries, default is 3 times
+- `timeout`: API call timeout, default is 30 seconds
 
-## 安全特性
-- 所有文件路径都经过验证，防止路径遍历攻击
-- 文件修改前会自动创建备份
-- 敏感操作需要用户确认
+## Security Features
+- All file paths are verified to prevent path traversal attacks
+- Automatic backup is created before file modification
+- Sensitive operations require user confirmation
 
-## 注意事项
-- 支持所有前端项目
-- 需联网以调用AI API
-- 代码自动写入需人工确认
-- 项目会在修改文件后自动重新分析项目结构
+## Notes
+- Supports all frontend projects
+- Requires internet connection to call AI API
+- Code auto-write requires manual confirmation
+- Project will automatically re-analyze project structure after modifying files
 
-## 故障排除
+## Troubleshooting
 
-### API密钥问题
-确保已正确设置`DASHSCOPE_API_KEY`环境变量。
+### API Key Issues
+Ensure `DASHSCOPE_API_KEY` environment variable is set correctly.
 
-### 依赖安装问题
-确保Node.js和npm已正确安装并添加到系统PATH中。
+### Dependency Installation Issues
+Ensure Node.js and npm are properly installed and added to system PATH.
 
-### 文件修改问题
-如果AI生成的代码不符合预期，可以拒绝应用修改，系统会自动清理相关历史记录。
+### File Modification Issues
+If the AI-generated code does not meet expectations, you can reject the modification, and the system will automatically clean up related history records.
