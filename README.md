@@ -10,10 +10,10 @@
    ```bash
    pip install -r requirements.txt
    # 或直接安装 dashscope
-   pip install dashscope
+   pip install dashscope prompt_toolkit
    ```
 2. 配置通义千问 API Key
-   - 设置环境变量 `QWEN_API_KEY`，或在 `main.py` 中直接填写
+   - 设置环境变量 `DASHSCOPE_API_KEY`，或在运行时按提示输入
 3. 运行 agent
    ```bash
    python main.py
@@ -25,7 +25,69 @@
 - Node.js
 - npm
 
+## 项目结构
+```
+.
+├── core/                 # 核心模块
+│   ├── __init__.py
+│   ├── application.py    # 主应用类
+│   ├── ai_interactor.py  # AI交互模块
+│   ├── config.py         # 配置管理模块
+│   ├── file_operator.py  # 文件操作模块
+│   └── project_analyzer.py # 项目分析模块
+├── exceptions/           # 自定义异常模块
+│   ├── __init__.py
+│   └── project_exceptions.py
+├── utils/                # 工具模块
+│   ├── __init__.py
+│   └── helpers.py
+├── main.py               # 主程序入口
+├── requirements.txt      # 依赖列表
+└── README.md             # 说明文档
+```
+
+## 核心功能
+
+### 1. 项目分析
+自动分析前端项目结构，识别关键文件和目录。
+
+### 2. AI辅助开发
+通过ReAct模式与AI交互，生成高质量的代码修改建议。
+
+### 3. 安全的文件操作
+所有文件操作都会进行路径验证和自动备份，防止意外修改。
+
+### 4. 项目运行管理
+支持一键安装依赖和运行项目。
+
+## 配置说明
+
+### 环境变量
+- `DASHSCOPE_API_KEY`: 通义千问API密钥（必需）
+
+### 配置项
+- `model_name`: 使用的AI模型名称，默认为`qwen3-coder-plus`
+- `max_retries`: API调用最大重试次数，默认为3次
+- `timeout`: API调用超时时间，默认为30秒
+
+## 安全特性
+- 所有文件路径都经过验证，防止路径遍历攻击
+- 文件修改前会自动创建备份
+- 敏感操作需要用户确认
+
 ## 注意事项
 - 支持所有前端项目
-- 需联网以调用 OpenAI API
+- 需联网以调用AI API
 - 代码自动写入需人工确认
+- 项目会在修改文件后自动重新分析项目结构
+
+## 故障排除
+
+### API密钥问题
+确保已正确设置`DASHSCOPE_API_KEY`环境变量。
+
+### 依赖安装问题
+确保Node.js和npm已正确安装并添加到系统PATH中。
+
+### 文件修改问题
+如果AI生成的代码不符合预期，可以拒绝应用修改，系统会自动清理相关历史记录。
