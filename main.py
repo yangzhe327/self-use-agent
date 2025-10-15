@@ -61,10 +61,12 @@ class UIProjectAgent:
             "代码必须遵循以下要求：\n"
             "1. 切记不要修改原代码逻辑，除非用户明确要求。\n"
             "2. 必须遵循当前项目的设计语言和风格。\n"
-            "3. 尽量不添加新的第三方库进项目，除非用户明确要求。"
+            "3. table请使用material-react-table。\n"
+            "4. 组件请使用material-ui中的组件。\n"
+            "5. 尽量不添加新的第三方库进项目，除非用户明确要求。"
         )
         full_prompt = (
-            f"以下是项目中需要修改/新增的文件及其内容（如有），请根据用户需求“{user_requirement}”给出每个文件的完整新内容，严格按格式输出：\n{files_info}\n{format_tip}"
+            f"以下项目中需要修改/新增的文件及其内容（如有），{files_info}\n 请根据用户需求“{user_requirement}”给出每个文件的完整新内容。遵循以下规则：\n{format_tip}"
         )
         
         # 使用ReAct策略生成文件修改内容
@@ -87,14 +89,19 @@ class UIProjectAgent:
         生成用于ReAct策略的文件列表生成提示
         """
         react_prompt = (
-            f"我想根据用户需求生成需要修改的文件列表。请使用ReAct策略来思考和行动。\n"
+            f"根据用户需求生成需要修改的文件列表。请使用ReAct策略来思考和行动。\n"
             f"用户需求：{user_requirement}\n"
             f"当前项目信息：{json.dumps(self.project_info, ensure_ascii=False, indent=2)}\n\n"
             f"请按照以下格式进行推理和行动：\n"
-            f"Thought: 分析用户需求和项目结构，确定需要修改哪些文件\n"
+            f"Thought: 分析用户需求和项目结构，确定需要修改哪些文件。如果需要了解特定文件的内容以做出判断，可以使用read_file操作。\n"
             f"Action: analyze_project()  # 可用的Action包括: analyze_project(), read_file(\"文件路径\"), write_file(\"文件路径\", \"文件内容\")\n"
             f"Observation: 根据分析结果，列出需要修改或删除或新增的文件路径\n"
-            f"Final Answer: 只输出文件路径列表，每行一个文件路径（如 src/App.jsx），只输出文件路径列表，不输出其他内容"
+            f"Final Answer: 只输出文件路径列表，每行一个文件路径（如 src/App.jsx），只输出文件路径列表，不输出其他内容\n\n"
+            f"重要提示：\n"
+            f"1. 在Thought阶段，仔细分析用户需求，考虑哪些文件可能需要修改\n"
+            f"2. 如果需要查看特定文件的内容以判断是否需要修改，请使用read_file操作\n"
+            f"3. 只有在充分分析后，才给出最终的文件列表\n"
+            f"4. 不要包含你不确定是否需要修改的文件"
         )
         return react_prompt
 
@@ -103,13 +110,17 @@ class UIProjectAgent:
         生成用于ReAct策略的文件修改内容生成提示
         """
         react_prompt = (
-            f"我想根据用户需求和文件内容生成具体的修改方案。请使用ReAct策略来思考和行动。\n"
+            f"根据用户需求和文件内容生成具体的修改方案。请使用ReAct策略来思考和行动。\n"
             f"任务描述：{full_prompt}\n\n"
             f"请按照以下格式进行推理和行动：\n"
-            f"Thought: 分析用户需求和当前文件内容，确定如何修改\n"
+            f"Thought: 分析用户需求和当前文件内容，确定如何修改。如果需要查看其他相关文件以确保修改的一致性，可以使用read_file操作。\n"
             f"Action: analyze_project()  # 可用的Action包括: analyze_project(), read_file(\"文件路径\"), write_file(\"文件路径\", \"文件内容\")\n"
             f"Observation: 根据分析结果，生成符合要求的代码修改方案\n"
-            f"Final Answer: 严格按照指定格式输出文件修改内容"
+            f"Final Answer: 严格按照指定格式输出文件修改内容\n\n"
+            f"重要提示：\n"
+            f"1. 在Thought阶段，仔细分析用户需求和提供的文件内容\n"
+            f"2. 如果需要查看其他相关文件以确保修改的一致性，请使用read_file操作\n"
+            f"3. 确保生成的代码符合项目的现有风格和结构"
         )
         return react_prompt
 
@@ -411,6 +422,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
 
 
