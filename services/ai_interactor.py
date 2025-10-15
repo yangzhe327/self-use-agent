@@ -60,13 +60,20 @@ class AIInteractor:
                             )
                     
                     self.messages.append({"role": "assistant", "content": content.strip()})
-                    
+
                     # 检查是否包含Final Answer，如果包含则直接返回最终答案
                     final_answer_match = re.search(r'Final Answer:\s*(.*)', content, re.DOTALL)
                     if final_answer_match:
                         # 提取Final Answer后的内容作为最终结果
                         final_answer = final_answer_match.group(1).strip()
                         return final_answer
+                    
+                    # 检查是否包含Thought过程
+                    thought_match = re.search(r'Thought:\s*(.*?)(?:\n(?:Action|Final Answer):|$)', content, re.DOTALL | re.IGNORECASE)
+                    if thought_match:
+                        thought = thought_match.group(1).strip()
+                        if thought:
+                            print(f"Thought: {thought}")
                     
                     # 检查是否包含Action，支持多种格式如 "Action: FUNCTION(args)" 或 "Action: FUNCTION (args)"
                     action_match = re.search(r'Action:\s*(\w+)\s*\((.*?)\)', content, re.IGNORECASE)
@@ -79,8 +86,7 @@ class AIInteractor:
                         
                         # 将Observation添加到对话中
                         observation_message = f"Observation: {observation}"
-                        observation_message = f"Observation: {observation}"
-                        print(observation_message)  # 添加打印以便调试
+                        # print(observation_message)  # 添加打印以便调试
                         self.messages.append({"role": "user", "content": observation_message})
                         
                         iteration += 1
