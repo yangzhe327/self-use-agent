@@ -18,95 +18,68 @@ class AICommands:
         self.analyzer = analyzer
         self.project_info: Dict[str, Any] = {}
 
-    def analyze_failure_reason(self, message: str) -> str:
+    def analyze_project_failure_reason(self, message: str) -> str:
         """Analyze the reason why the project cannot be run"""
         # Prepare project information for AI analysis
         project_info = self.analyzer.analyze()
         project_context = json.dumps(project_info, ensure_ascii=False, indent=2)
         
-        # Use ReAct strategy to analyze failure reason
+        # Simplified prompt as ReAct strategy is in system prompt
         analysis_prompt = (
             f"The project cannot be run, the error message is: {message}\n"
             f"Project structure information:\n{project_context}\n"
-            "Please use the ReAct strategy to analyze the specific reason why the project cannot be run, and determine whether it is caused by missing dependencies.\n"
-            "Please follow the following format for reasoning and action:\n"
-            "Thought: Analyze the error message and project structure to determine the possible cause\n"
-            "Action: analyze_project_issues()\n"
-            "Observation: Based on the analysis results, determine the specific cause\n"
-            "Final Answer: If it is caused by missing dependencies, please reply 'dependency issue'; for other reasons, please provide a detailed explanation.\n"
+            "Analyze the specific reason why the project cannot be run, and determine whether it is caused by missing dependencies.\n"
+            "If it is caused by missing dependencies, please reply 'dependency issue'; for other reasons, please provide a detailed explanation.\n"
             "Only output the analysis results, do not output other content."
         )
         
         analysis_result = self.ai.ask_with_react(analysis_prompt)
         return analysis_result.strip()
 
-    def modify_project(self, user_requirement: str) -> None:
+    def process_user_requirement(self, user_requirement: str) -> None:
         """
-        Modify project based on user requirements
+        Process user requirements, but let AI decide whether to analyze or modify
         """
         self.project_info = self.analyzer.analyze()
         
-        # Use ReAct strategy to generate file list
-        react_prompt = self._generate_react_prompt_for_file_list(user_requirement)
-        ai_file_list = self.ai.ask_with_react(react_prompt)
-        
-        file_paths = [line.strip() for line in ai_file_list.split('\n') if line.strip()]
-        file_contents = []
-        for path in file_paths:
-            abs_path = os.path.join(self.project_path, path)
-            content = FileOperator.read_file(abs_path, self.project_path)
-            if content:
-                file_contents.append(f"---file-start---\n{path}\n---code-start---\n{content}\n---code-end---\n---file-end---")
-            else:
-                file_contents.append(f"---file-start---\n{path}\n---code-start---\n(File does not exist, please generate new file content)\n---code-end---\n---file-end---")
-        files_info = '\n'.join(file_contents)
-        format_tip = (
-            "Please strictly follow the following format for reply:\n"
-            "Each file that needs to be modified, deleted, or added should be separated in the following format:\n"
-            "---file-start---\nFile path (e.g., src/App.jsx)\n---code-start---\nCode content (completely replace the file content)\n---code-end---\n---file-end---\n"
-            "If you need to delete a file, please fill in 'delete' between ---code-start--- and ---code-end---.\n"
-            "If there are multiple files, repeat the above structure. Do not output extra content.\n"
-            "The code must follow these requirements:\n"
-            "1. Remember not to modify the original code logic unless explicitly requested by the user.\n"
-            "2. Must follow the design language and style of the current project.\n"
-            "3. For tables, please use material-react-table.\n"
-            "4. For components, please use components from material-ui.\n"
-            "5. Try not to add new third-party libraries to the project unless explicitly requested by the user."
-        )
-        full_prompt = (
-            f"The following files in the project that need to be modified/added and their content (if any), {files_info}\n Please give the complete new content of each file according to the user requirement \"{user_requirement}\". Follow these rules:\n{format_tip}"
+        # Simplified prompt as ReAct strategy is in system prompt
+        decision_prompt = (
+            f"User requirement: {user_requirement}\n\n"
+            f"Project structure:\n{json.dumps(self.project_info, ensure_ascii=False, indent=2)}\n\n"
+            f"Please decide which type of task this is and take appropriate action:\n"
+            f"Action: Choose one of the following actions:\n"
+            f"  - perform_file_operations(\"{user_requirement}\"): Use this when the task requires changing files in the project\n"
+            f"  - perform_analysis_task(\"{user_requirement}\"): Use this when the task only requires providing information, explanations, or analysis\n\n"
+            f"Examples of file operation tasks:\n"
+            f"- 'Add a login page' - requires creating new files\n"
+            f"- 'Change the color scheme' - requires modifying existing files\n"
+            f"- 'Delete the unused components' - requires deleting files\n\n"
+            f"Examples of analysis tasks:\n"
+            f"- 'Analyze the project structure' - just needs to provide information\n"
+            f"- 'Explain what this page does' - just needs to provide explanation\n"
+            f"- 'What is the purpose of this code' - just needs to provide analysis\n"
+            f"- 'How does this component work' - just needs to provide explanation"
         )
         
-        # Use ReAct strategy to generate file modification content
-        react_modify_prompt = self._generate_react_prompt_for_modifications(full_prompt)
-        ai_response = self.ai.ask_with_react(react_modify_prompt)
-        
-        print("Suggested files to modify:")
-        print(ai_file_list)
-        apply = input("Do you want to apply the above modifications to the project? (y/n): ").strip().lower()
-        if apply == 'y':
-            self.apply_ai_changes(ai_response)
-        else:
-            print("Skipped automatic application of modifications.")
-            # When user refuses to apply modifications, clear the related conversation history (file list request + specific content request)
-            self.ai.remove_last_interaction()  # Clear conversation history of specific content request
-            self.ai.remove_last_interaction()  # Clear conversation history of file list request
+        # Get AI decision and execute
+        result = self.ai.ask_with_react(decision_prompt)
+        print("\nAI Result:")
+        print("=" * 50)
+        print(result)
+        print("=" * 50)
 
     def _generate_react_prompt_for_file_list(self, user_requirement: str) -> str:
         """
-        Generate prompt for file list generation using ReAct strategy
+        Generate prompt for file list generation
         """
         react_prompt = (
-            f"Generate a list of files to be modified based on user requirements. Please use the ReAct strategy to think and act.\n"
+            f"Generate a list of files to be modified based on user requirements.\n"
             f"User requirement: {user_requirement}\n"
             f"Current project information: {json.dumps(self.project_info, ensure_ascii=False, indent=2)}\n\n"
-            f"Please follow the following format for reasoning and action:\n"
-            f"Thought: Analyze user requirements and project structure to determine which files need to be modified. If you need to understand the content of a specific file to make a judgment, you can use the read_file operation.\n"
-            f"Action: analyze_project()  # Available Actions include: analyze_project(), read_file(\"file path\"), write_file(\"file path\", \"file content\")\n"
-            f"Observation: Based on the analysis results, list the file paths that need to be modified, deleted, or added\n"
+            f"Action: analyze_project() or read_file(\"file path\") as needed\n"
             f"Final Answer: Only output the file path list, one file path per line (e.g., src/App.jsx), only output the file path list, do not output other content\n\n"
-            f"Important tips:\n"
-            f"1. In the Thought stage, carefully analyze user requirements and consider which files may need to be modified\n"
+            f"Tips:\n"
+            f"1. Analyze user requirements and project structure to determine which files need to be modified\n"
             f"2. If you need to view the content of a specific file to determine whether it needs to be modified, please use the read_file operation\n"
             f"3. Only give the final file list after sufficient analysis\n"
             f"4. Do not include files you are unsure whether they need to be modified"
@@ -115,18 +88,15 @@ class AICommands:
 
     def _generate_react_prompt_for_modifications(self, full_prompt: str) -> str:
         """
-        Generate prompt for file modification content generation using ReAct strategy
+        Generate prompt for file modification content generation
         """
         react_prompt = (
-            f"Generate specific modification plans based on user requirements and file content. Please use the ReAct strategy to think and act.\n"
+            f"Generate specific modification plans based on user requirements and file content.\n"
             f"Task description: {full_prompt}\n\n"
-            f"Please follow the following format for reasoning and action:\n"
-            f"Thought: Analyze user requirements and current file content to determine how to modify. If you need to view other related files to ensure consistency of modifications, you can use the read_file operation.\n"
-            f"Action: analyze_project()  # Available Actions include: analyze_project(), read_file(\"file path\"), write_file(\"file path\", \"file content\")\n"
-            f"Observation: Based on the analysis results, generate code modification plans that meet the requirements\n"
+            f"Action: analyze_project() or read_file(\"file path\") as needed\n"
             f"Final Answer: Strictly output file modification content in the specified format\n\n"
-            f"Important tips:\n"
-            f"1. In the Thought stage, carefully analyze user requirements and provided file content\n"
+            f"Tips:\n"
+            f"1. Analyze user requirements and current file content to determine how to modify\n"
             f"2. If you need to view other related files to ensure consistency of modifications, please use the read_file operation\n"
             f"3. Ensure that the generated code conforms to the existing style and structure of the project"
         )
@@ -195,6 +165,3 @@ class AICommands:
             print("File content updated.")
             
         print("Application completed!")
-
-
-
