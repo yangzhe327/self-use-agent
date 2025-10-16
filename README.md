@@ -1,4 +1,4 @@
-# 前端 自动修改 Agent
+# 前端自动修改 Agent
 
 ## 功能简介
 - 命令行交互，自动修改前端项目
@@ -28,13 +28,19 @@
 ## 项目结构
 ```
 .
-├── core/                 # 核心模块
+├── agents/               # 核心应用模块
 │   ├── __init__.py
-│   ├── application.py    # 主应用类
-│   ├── ai_interactor.py  # AI交互模块
-│   ├── config.py         # 配置管理模块
-│   ├── file_operator.py  # 文件操作模块
-│   └── project_analyzer.py # 项目分析模块
+│   └── application.py    # 主应用类
+├── commands/             # 命令处理模块
+│   ├── __init__.py
+│   ├── ai_commands.py    # AI相关命令处理
+│   └── project_commands.py # 项目相关命令处理
+├── services/             # 业务服务模块
+│   ├── __init__.py
+│   ├── ai_interactor.py  # AI交互服务
+│   ├── config.py         # 配置管理服务
+│   ├── file_operator.py  # 文件操作服务
+│   └── project_analyzer.py # 项目分析服务
 ├── exceptions/           # 自定义异常模块
 │   ├── __init__.py
 │   └── project_exceptions.py
