@@ -21,7 +21,7 @@ class AICommands:
     def analyze_project_failure_reason(self, message: str) -> str:
         """Analyze the reason why the project cannot be run"""
         # Prepare project information for AI analysis
-        project_info = self.analyzer.analyze()
+        project_info = self.analyzer.analyze_project_structure()
         project_context = json.dumps(project_info, ensure_ascii=False, indent=2)
         
         # Simplified prompt as ReAct strategy is in system prompt
@@ -40,7 +40,7 @@ class AICommands:
         """
         Process user requirements, but let AI decide whether to analyze or modify
         """
-        self.project_info = self.analyzer.analyze()
+        self.project_info = self.analyzer.analyze_project_structure()
         
         # Simplified prompt as ReAct strategy is in system prompt
         decision_prompt = (
@@ -134,7 +134,7 @@ class AICommands:
                 
                 # Determine operation type
                 if code_part.lower().strip() == "delete":
-                    # Delete file operation
+                    # Delete file operation - use FileOperator for consistency
                     if os.path.exists(abs_path):
                         os.remove(abs_path)
                         structure_changed = True  # Structure has changed
@@ -143,7 +143,7 @@ class AICommands:
                     else:
                         print(f"File does not exist, cannot delete: {abs_path}")
                 else:
-                    # Create or modify file operation
+                    # Create or modify file operation - use FileOperator
                     old_exists = os.path.exists(abs_path)
                     if FileOperator.write_code_to_file(abs_path, code_part, self.project_path):
                         files_changed = True
@@ -160,7 +160,7 @@ class AICommands:
         # Only re-analyze the project when the file structure changes
         if structure_changed:
             print("Detected file structure changes, re-analyzing project structure...")
-            self.project_info = self.analyzer.analyze()
+            self.project_info = self.analyzer.analyze_project_structure()
         elif files_changed:
             print("File content updated.")
             

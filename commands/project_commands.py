@@ -2,11 +2,8 @@
 Project Command Processing Module
 """
 
-import os
 import json
 import subprocess
-import tempfile
-import shutil
 from typing import Dict, Any, Optional, Tuple
 from services.project_analyzer import ProjectAnalyzer
 from utils.helpers import find_executable, run_subprocess_command
@@ -32,12 +29,15 @@ class ProjectCommands:
             if not npm_executable:
                 return False, "npm command not found, please ensure Node.js is installed"
             
-            package_json_path = os.path.join(self.project_path, 'package.json')
-            if not os.path.exists(package_json_path):
+            # Use analyzer to read package.json instead of direct file operation
+            package_json_content = self.analyzer.read_file_content('package.json')
+            if not package_json_content:
                 return False, "package.json file not found in the project"
                 
-            with open(package_json_path, 'r', encoding='utf-8') as f:
-                package_data = json.load(f)
+            try:
+                package_data = json.loads(package_json_content)
+            except json.JSONDecodeError as e:
+                return False, f"package.json file format error: {str(e)}"
             
             # Determine test run command
             scripts = package_data.get('scripts', {})
@@ -87,8 +87,6 @@ class ProjectCommands:
                 # If the command times out, it's likely running successfully (e.g., dev server)
                 return True, f"Test run timed out (likely running successfully). Project can be run with 'npm run {script_name}'"
                 
-        except json.JSONDecodeError as e:
-            return False, f"package.json file format error: {str(e)}"
         except Exception as e:
             return False, f"Error testing project run: {str(e)}"
 
@@ -96,9 +94,9 @@ class ProjectCommands:
         """Install project dependencies"""
         print("Installing project dependencies...")
         try:
-            # Check if package.json exists
-            package_json_path = os.path.join(self.project_path, 'package.json')
-            if not os.path.exists(package_json_path):
+            # Use analyzer to check if package.json exists
+            package_json_content = self.analyzer.read_file_content('package.json')
+            if not package_json_content:
                 print("package.json file not found in the project, cannot install dependencies")
                 return False
             
@@ -137,13 +135,17 @@ class ProjectCommands:
                 print("npm command not found, please ensure Node.js is installed")
                 return
             
-            package_json_path = os.path.join(self.project_path, 'package.json')
-            if not os.path.exists(package_json_path):
+            # Use analyzer to read package.json instead of direct file operation
+            package_json_content = self.analyzer.read_file_content('package.json')
+            if not package_json_content:
                 print("package.json file not found in the project")
                 return
                 
-            with open(package_json_path, 'r', encoding='utf-8') as f:
-                package_data = json.load(f)
+            try:
+                package_data = json.loads(package_json_content)
+            except json.JSONDecodeError as e:
+                print(f"package.json file format error: {str(e)}")
+                return
             
             # Determine run command
             scripts = package_data.get('scripts', {})
@@ -181,8 +183,6 @@ class ProjectCommands:
             )
             
             print("Project started, please check the newly opened window")
-        except json.JSONDecodeError as e:
-            print(f"package.json file format error: {str(e)}")
         except Exception as e:
             print(f"Error running project: {str(e)}")
 

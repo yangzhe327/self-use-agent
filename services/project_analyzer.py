@@ -35,29 +35,29 @@ class ProjectAnalyzer:
         ]
         self.component_extensions = ['.js', '.jsx', '.ts', '.tsx', '.vue']
 
-    def analyze(self) -> Dict[str, Any]:
+    def analyze_project_structure(self) -> Dict[str, Any]:
         """
         Analyze project structure and key files
         """
         try:
             # Read key files
             for file_name in self.key_files:
-                self.project_info[file_name] = self.read_file(file_name)
+                self.project_info[file_name] = self.read_file_content(file_name)
             
             # Find files in key directories
             for dir_name in self.key_directories:
-                self.project_info[dir_name] = self.find_files(dir_name, self.component_extensions)
+                self.project_info[dir_name] = self.find_files_in_directory(dir_name, self.component_extensions)
             
             # Special handling of common structures in src directory
             src_subdirs = ['components', 'pages', 'views', 'routes', 'utils', 'hooks', 'services']
             for subdir in src_subdirs:
-                self.project_info[f'src/{subdir}'] = self.find_files(f'src/{subdir}', self.component_extensions)
+                self.project_info[f'src/{subdir}'] = self.find_files_in_directory(f'src/{subdir}', self.component_extensions)
             
             return self.project_info
         except Exception as e:
             raise ProjectAnalysisError(f"Project analysis failed: {str(e)}")
 
-    def find_files(self, folder: str, exts: List[str]) -> List[str]:
+    def find_files_in_directory(self, folder: str, exts: List[str]) -> List[str]:
         """
         Find files with specific extensions in the specified directory
         
@@ -83,7 +83,7 @@ class ProjectAnalyzer:
             
         return result
 
-    def read_file(self, rel_path: str) -> str:
+    def read_file_content(self, rel_path: str) -> str:
         """
         Read file in the project
         

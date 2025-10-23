@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 from services.project_analyzer import ProjectAnalyzer
 from services.ai_interactor import AIInteractor
 from services.config import Config
+from services.file_operator import FileOperator
 from commands.project_commands import ProjectCommands
 from commands.ai_commands import AICommands
 from exceptions.project_exceptions import ProjectBaseException
@@ -32,7 +33,7 @@ class UIProjectAgent:
         Analyze project structure
         """
         try:
-            self.project_info = self.analyzer.analyze()
+            self.project_info = self.analyzer.analyze_project_structure()
             if not self.context_initialized:
                 # Unified role definition with ReAct strategy
                 system_prompt = (
@@ -186,8 +187,8 @@ class UIProjectAgent:
                 file_paths = [line.strip() for line in ai_file_list.split('\n') if line.strip()]
                 file_contents = []
                 for path in file_paths:
-                    # Use analyzer's read_file method instead of FileOperator
-                    content = self.analyzer.read_file(path)
+                    # Use analyzer's read_file_content method instead of FileOperator
+                    content = self.analyzer.read_file_content(path)
                     if content:
                         file_contents.append(f"---file-start---\n{path}\n---code-start---\n{content}\n---code-end---\n---file-end---")
                     else:
@@ -229,8 +230,8 @@ class UIProjectAgent:
                 
             elif action_name == "read_file" and args:
                 file_path = args[0]
-                # Use analyzer's read_file method
-                content = self.analyzer.read_file(file_path)
+                # Use analyzer's read_file_content method
+                content = self.analyzer.read_file_content(file_path)
                 if content:
                     return f"Content of file {file_path}:\n{content[:1000]}..."  # Limit content length
                 else:
@@ -240,10 +241,14 @@ class UIProjectAgent:
                 file_path = args[0]
                 content = args[1] if len(args) == 2 else ' '.join(args[1:])
                 abs_path = os.path.join(self.project_path, file_path)
-                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-                with open(abs_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                return f"File {file_path} written"
+                # Use FileOperator to write file
+                try:
+                    if FileOperator.write_code_to_file(abs_path, content, self.project_path):
+                        return f"File {file_path} written"
+                    else:
+                        return f"Failed to write file {file_path}"
+                except Exception as e:
+                    return f"Error writing file {file_path}: {str(e)}"
                 
             else:
                 return f"Unknown action: {action_name} or insufficient parameters"
