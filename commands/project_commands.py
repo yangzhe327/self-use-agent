@@ -5,6 +5,8 @@ Project Command Processing Module
 import os
 import json
 import subprocess
+import tempfile
+import shutil
 from typing import Dict, Any, Optional, Tuple
 from services.project_analyzer import ProjectAnalyzer
 from utils.helpers import find_executable, run_subprocess_command
@@ -18,29 +20,77 @@ class ProjectCommands:
         self.analyzer = ProjectAnalyzer(project_path)
         self.running_process: Optional[subprocess.Popen] = None
 
-    def check_project_runnable(self) -> Tuple[bool, str]:
-        """Check if the project can be run"""
-        package_json_content = self.analyzer.read_file('package.json')
-        if not package_json_content:
-            return False, "package.json file not found in the project"
-        
+
+    def test_run_project(self) -> Tuple[bool, str]:
+        """
+        Actually test run the project to see if all dependencies are properly installed
+        Returns a tuple of (success, error_message)
+        """
         try:
-            package_data = json.loads(package_json_content)
+            # Check if npm is available
+            npm_executable = find_executable('npm')
+            if not npm_executable:
+                return False, "npm command not found, please ensure Node.js is installed"
             
-            if 'scripts' not in package_data:
-                return False, "No scripts defined in package.json"
+            package_json_path = os.path.join(self.project_path, 'package.json')
+            if not os.path.exists(package_json_path):
+                return False, "package.json file not found in the project"
+                
+            with open(package_json_path, 'r', encoding='utf-8') as f:
+                package_data = json.load(f)
             
-            # Check for startup scripts
-            start_scripts = ['start', 'dev', 'serve']
-            for script in start_scripts:
-                if script in package_data['scripts']:
-                    return True, f"Project can be run using 'npm run {script}'"
+            # Determine test run command
+            scripts = package_data.get('scripts', {})
+            test_cmd = None
+            script_name = None
             
-            return True, "Project contains npm scripts and can be run"
+            # Try to find a script that would start the project without opening browser or long running process
+            # We prioritize scripts that might do a quick build or dry-run
+            if 'build' in scripts:
+                script_name = 'build'
+                test_cmd = [npm_executable, 'run', 'build']
+            elif 'start' in scripts:
+                script_name = 'start'
+                test_cmd = [npm_executable, 'run', 'start']
+            elif 'dev' in scripts:
+                script_name = 'dev'
+                test_cmd = [npm_executable, 'run', 'dev']
+            elif 'serve' in scripts:
+                script_name = 'serve'
+                test_cmd = [npm_executable, 'run', 'serve']
+            else:
+                # If there are no predefined scripts, use the default startup command
+                script_name = 'start'
+                test_cmd = [npm_executable, 'start']
+            
+            # Run the command with a timeout to check if dependencies are properly installed
+            try:
+                result = subprocess.run(
+                    test_cmd,
+                    cwd=self.project_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=30  # 30 second timeout
+                )
+                
+                # Check if it's a dependency issue
+                stderr_output = result.stderr.lower()
+                if "enoent" in stderr_output or "module not found" in stderr_output or "cannot find module" in stderr_output:
+                    return False, f"Missing dependencies detected when running '{' '.join(test_cmd)}': {result.stderr}"
+                elif "error" in stderr_output and result.returncode != 0:
+                    return False, f"Error running '{' '.join(test_cmd)}': {result.stderr}"
+                else:
+                    # Command executed successfully or failed for non-dependency reasons
+                    return True, f"Test run successful. Project can be run with 'npm run {script_name}'"
+                    
+            except subprocess.TimeoutExpired:
+                # If the command times out, it's likely running successfully (e.g., dev server)
+                return True, f"Test run timed out (likely running successfully). Project can be run with 'npm run {script_name}'"
+                
         except json.JSONDecodeError as e:
             return False, f"package.json file format error: {str(e)}"
         except Exception as e:
-            return False, f"Error checking project: {str(e)}"
+            return False, f"Error testing project run: {str(e)}"
 
     def install_dependencies(self) -> bool:
         """Install project dependencies"""

@@ -20,17 +20,12 @@ if __name__ == '__main__':
         
         agent = UIProjectAgent(project_path=project_path)
         
-        # Check if project is runnable
-        runnable, message = agent.check_project_runnable()
-        if runnable:
-            print(f"Project check completed: {message}")
-            run_choice = input("Do you want to run the project? (y/n): ").strip().lower()
-            if run_choice == 'y':
-                agent.run_project()
-        else:
-            print(f"Project cannot be run temporarily: {message}")
+        # Actually test run the project to see if all dependencies are properly installed
+        test_runnable, test_message = agent.test_run_project()
+        if not test_runnable:
+            print(f"Project test run failed: {test_message}")
             # Let AI analyze the specific reason
-            analysis_result = agent.analyze_failure_reason(message)
+            analysis_result = agent.analyze_failure_reason(test_message)
             print(f"Analysis result: {analysis_result}")
             
             # Decide next action based on AI analysis
@@ -43,7 +38,14 @@ if __name__ == '__main__':
                             agent.run_project()
             else:
                 # If it's not a dependency issue, AI has already provided detailed explanation, user can decide whether to continue
-                pass
+                run_choice = input("Do you still want to try running the project? (y/n): ").strip().lower()
+                if run_choice == 'y':
+                    agent.run_project()
+        else:
+            print(f"Project test run successful: {test_message}")
+            run_choice = input("Do you want to run the project? (y/n): ").strip().lower()
+            if run_choice == 'y':
+                agent.run_project()
         
         # Then analyze the project and enter modification mode
         print("\nEnter your new requirements, 'exit' to quit")

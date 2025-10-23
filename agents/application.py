@@ -116,9 +116,9 @@ class UIProjectAgent:
         except Exception as e:
             raise ProjectBaseException(f"Error modifying project: {str(e)}")
 
-    def check_project_runnable(self) -> tuple[bool, str]:
-        """Check if project is runnable"""
-        return self.project_commands.check_project_runnable()
+    def test_run_project(self) -> tuple[bool, str]:
+        """Actually test run the project to see if all dependencies are properly installed"""
+        return self.project_commands.test_run_project()
 
     def install_dependencies(self) -> bool:
         """Install project dependencies"""
