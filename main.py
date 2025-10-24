@@ -19,38 +19,36 @@ def main():
         
         agent = UIProjectAgent(project_path=project_path)
         
-        # Test if project can be run directly
-        print("Testing if project can be run...")
-        test_run_success, test_run_message = agent.check_project_runnable()
-        if test_run_success:
-            print(f"Project test run successful: {test_run_message}")
-            run_choice = input("Do you want to run the project? (y/n): ").strip().lower()
-            if run_choice == 'y':
+        # Ask user if they want to run the project first
+        run_choice = input("Do you want to run the project? (y/n): ").strip().lower()
+        if run_choice == 'y':
+            try:
                 agent.run_project()
-        else:
-            print(f"Project test run failed: {test_run_message}")
-            # Let AI analyze the specific reason
-            analysis_result = agent.analyze_failure_reason(test_run_message)
-            print(f"Analysis result: {analysis_result}")
-            
-            # Decide next action based on AI analysis
-            if "dependency issue" in analysis_result or "dependency" in analysis_result or "node_modules" in test_run_message:
-                install_choice = input("Do you want to install project dependencies? (y/n): ").strip().lower()
-                if install_choice == 'y':
-                    if agent.install_dependencies():
-                        # Test run again after installing dependencies
-                        test_run_success, test_run_message = agent.check_project_runnable()
-                        if test_run_success:
-                            run_choice = input("Dependencies installed successfully, do you want to run the project? (y/n): ").strip().lower()
-                            if run_choice == 'y':
+                print("Project started successfully!")
+            except Exception as e:
+                print(f"Failed to start project: {str(e)}")
+                # Let AI analyze the specific reason
+                analysis_result = agent.analyze_failure_reason(str(e))
+                print(f"Analysis result: {analysis_result}")
+                
+                # Decide next action based on AI analysis
+                if "dependency issue" in analysis_result or "dependency" in analysis_result:
+                    install_choice = input("Do you want to install project dependencies? (y/n): ").strip().lower()
+                    if install_choice == 'y':
+                        if agent.install_dependencies():
+                            print("Dependencies installed successfully, trying to run project again...")
+                            try:
                                 agent.run_project()
-                        else:
-                            print(f"Project still failed to start after dependency installation: {test_run_message}")
-                            analysis_result = agent.analyze_failure_reason(test_run_message)
-                            print(f"Analysis result: {analysis_result}")
-            else:
-                # If it's not a dependency issue, AI has already provided detailed explanation, user can decide whether to continue
-                pass
+                                print("Project started successfully!")
+                            except Exception as e:
+                                print(f"Project still failed to start after dependency installation: {str(e)}")
+                                analysis_result = agent.analyze_failure_reason(str(e))
+                                print(f"Analysis result: {analysis_result}")
+                else:
+                    # If it's not a dependency issue, AI has already provided detailed explanation
+                    pass
+        else:
+            print("Skipping project run step.")
         
         # Then analyze the project and enter modification mode
         print("\nEnter your new requirements, 'exit' to quit")
