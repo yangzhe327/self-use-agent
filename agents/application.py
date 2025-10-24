@@ -58,11 +58,7 @@ class UIProjectAgent:
     def check_project_runnable(self) -> tuple[bool, str]:
         """Check if project is runnable"""
         return self.project_commands.check_project_runnable()
-
-    def install_dependencies(self) -> bool:
-        """Install project dependencies"""
-        return self.project_commands.install_dependencies()
-
+    
     def run_project(self) -> None:
         """Run project"""
         self.project_commands.run_project()
@@ -70,10 +66,6 @@ class UIProjectAgent:
     def stop_project(self) -> None:
         """Stop running project"""
         self.project_commands.stop_project()
-
-    def analyze_failure_reason(self, message: str) -> str:
-        """Analyze reason for project not running"""
-        return self.ai_commands.analyze_failure_reason(message)
 
     def execute_action(self, action_name: str, args: list) -> str:
         """

@@ -27,26 +27,6 @@ def main():
                 print("Project started successfully!")
             except Exception as e:
                 print(f"Failed to start project: {str(e)}")
-                # Let AI analyze the specific reason
-                analysis_result = agent.analyze_failure_reason(str(e))
-                print(f"Analysis result: {analysis_result}")
-                
-                # Decide next action based on AI analysis
-                if "dependency issue" in analysis_result or "dependency" in analysis_result:
-                    install_choice = input("Do you want to install project dependencies? (y/n): ").strip().lower()
-                    if install_choice == 'y':
-                        if agent.install_dependencies():
-                            print("Dependencies installed successfully, trying to run project again...")
-                            try:
-                                agent.run_project()
-                                print("Project started successfully!")
-                            except Exception as e:
-                                print(f"Project still failed to start after dependency installation: {str(e)}")
-                                analysis_result = agent.analyze_failure_reason(str(e))
-                                print(f"Analysis result: {analysis_result}")
-                else:
-                    # If it's not a dependency issue, AI has already provided detailed explanation
-                    pass
         else:
             print("Skipping project run step.")
         

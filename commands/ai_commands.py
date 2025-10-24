@@ -18,29 +18,7 @@ class AICommands:
         self.project_path = project_path
         self.analyzer = analyzer
         self.project_info: Dict[str, Any] = {}
-
-    def analyze_failure_reason(self, message: str) -> str:
-        """Analyze the reason why the project cannot be run"""
-        # Prepare project information for AI analysis
-        project_info = self.analyzer.analyze()
-        project_context = json.dumps(project_info, ensure_ascii=False, indent=2)
         
-        # Use ReAct strategy to analyze failure reason
-        analysis_prompt = (
-            f"The project cannot be run, the error message is: {message}\n"
-            f"Project structure information:\n{project_context}\n"
-            "Please use the ReAct strategy to analyze the specific reason why the project cannot be run, and determine whether it is caused by missing dependencies.\n"
-            "Please follow the following format for reasoning and action:\n"
-            "Thought: Analyze the error message and project structure to determine the possible cause\n"
-            "Action: analyze_project(), read_file(\"file path\")\n"
-            "Observation: Based on the analysis results, determine the specific cause\n"
-            "Final Answer: If it is caused by missing dependencies, please reply 'dependency issue'; for other reasons, please provide a detailed explanation.\n"
-            "Only output the analysis results, do not output other content."
-        )
-        
-        analysis_result = self.ai.ask_with_react(analysis_prompt)
-        return analysis_result.strip()
-
     def process_user_requirement(self, user_requirement: str) -> None:
         """
         Process user requirements and generate project modifications

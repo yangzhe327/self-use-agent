@@ -96,37 +96,6 @@ class ProjectCommands:
         except Exception as e:
             return False, f"Error testing project run: {str(e)}"
 
-    def install_dependencies(self) -> bool:
-        """Install project dependencies"""
-        print("Installing project dependencies...")
-        try:
-            # Check if package.json exists
-            package_json_path = os.path.join(self.project_path, 'package.json')
-            if not os.path.exists(package_json_path):
-                print("package.json file not found in the project, cannot install dependencies")
-                return False
-            
-            # Check if npm is available
-            npm_executable = find_executable('npm')
-            if not npm_executable:
-                print("npm command not found, please ensure Node.js is installed")
-                return False
-            
-            # Execute npm install, ensure it is executed in the correct project directory
-            cmd = [npm_executable, 'install']
-            print(f"Executing command: {' '.join(cmd)} in directory: {self.project_path}")
-            result = run_subprocess_command(cmd, cwd=self.project_path)
-            
-            if result.returncode == 0:
-                print("Dependencies installed successfully!")
-                return True
-            else:
-                print(f"Dependency installation failed: {result.stderr}")
-                return False
-        except Exception as e:
-            print(f"Error installing dependencies: {str(e)}")
-            return False
-
     def run_project(self) -> None:
         """Run project"""
         try:
