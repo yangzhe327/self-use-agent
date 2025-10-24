@@ -4,9 +4,8 @@ Main Application Class
 
 import os
 import json
-import subprocess
 import sys
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from services.project_analyzer import ProjectAnalyzer
 from services.ai_interactor import AIInteractor
 from services.config import Config
@@ -22,7 +21,6 @@ class UIProjectAgent:
         self.config = Config()
         self.ai = AIInteractor()
         self.ai.set_agent(self)  # Set agent reference
-        self.project_info: Dict[str, Any] = {}
         self.context_initialized = False
         self.project_commands = ProjectCommands(project_path)
         self.ai_commands = AICommands(self.ai, project_path, self.analyzer)
@@ -32,7 +30,6 @@ class UIProjectAgent:
         Analyze the project structure and generate project information
         """
         try:
-            self.project_info = self.analyzer.analyze()
             if not self.context_initialized:
                 self.ai.messages.append({
                     "role": "system",
@@ -42,8 +39,6 @@ class UIProjectAgent:
                         "When outputting, please follow these requirements:\n"
                         "1. The code should be complete, standardized, and maintainable.\n"
                         "2. Responses should be concise and avoid irrelevant content.\n"
-                        "The current project structure is as follows:\n"
-                        f"{json.dumps(self.project_info, ensure_ascii=False, indent=2)}"
                     )
                 })
                 self.context_initialized = True
@@ -56,8 +51,7 @@ class UIProjectAgent:
         """
         try:
             self.analyze_project()
-            self.ai_commands.project_info = self.project_info
-            self.ai_commands.modify_project(user_requirement)
+            self.ai_commands.process_user_requirement(user_requirement)
         except Exception as e:
             raise ProjectBaseException(f"Error modifying project: {str(e)}")
 
@@ -81,7 +75,7 @@ class UIProjectAgent:
         """Analyze reason for project not running"""
         return self.ai_commands.analyze_failure_reason(message)
 
-    def _execute_action(self, action_name: str, args: list) -> str:
+    def execute_action(self, action_name: str, args: list) -> str:
         """
         Execute specific action
         """
@@ -99,19 +93,8 @@ class UIProjectAgent:
                     return f"Content of file {file_path}:\n{content[:1000]}..."  # Limit content length
                 else:
                     return f"File {file_path} does not exist"
-                    
-            elif action_name == "write_file" and len(args) >= 2:
-                file_path = args[0]
-                content = args[1] if len(args) == 2 else ' '.join(args[1:])
-                abs_path = os.path.join(self.project_path, file_path)
-                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-                with open(abs_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                return f"File {file_path} written"
                 
             else:
                 return f"Unknown action: {action_name} or insufficient parameters"
         except Exception as e:
             return f"Error executing action: {str(e)}"
-
-

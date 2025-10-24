@@ -9,7 +9,7 @@ import time
 from typing import List, Dict, Any, Optional
 from services.config import Config
 from exceptions.project_exceptions import AIInteractionError
-
+# Removed direct import of UIProjectAgent to avoid circular import
 
 class AIInteractor:
     def __init__(self, api_key: Optional[str] = None):
@@ -17,7 +17,7 @@ class AIInteractor:
         if api_key:
             self.config.api_key = api_key
         self.messages: List[Dict[str, str]] = []
-        self.agent = None  # 添加对 agent 的引用
+        self.agent: "UIProjectAgent"  # Use string annotation to avoid circular import
 
     def set_agent(self, agent):
         """Set agent reference to call actual actions"""
@@ -82,7 +82,7 @@ class AIInteractor:
                         action_input = action_match.group(2).strip('\"')
                         
                         # Execute Action and get Observation
-                        observation = self.execute_action(action, action_input)
+                        observation = self.dispatch_action(action, action_input)
                         
                         # Add Observation to the conversation
                         observation_message = f"Observation: {observation}"
@@ -181,7 +181,7 @@ class AIInteractor:
         except Exception as e:
             raise AIInteractionError(f"AI interaction failed: {str(e)}")
 
-    def execute_action(self, action: str, action_input: str) -> str:
+    def dispatch_action(self, action: str, action_input: str) -> str:
         """
         Execute specific Action and return result
         """
@@ -206,7 +206,7 @@ class AIInteractor:
             
             # Call the actual action implementation in agent
             try:
-                result = self.agent._execute_action(action, args)
+                result = self.agent.execute_action(action, args)
                 return result
             except Exception as e:
                 return f"Error executing {action} operation: {str(e)}"
@@ -214,7 +214,7 @@ class AIInteractor:
             # If there is no agent reference, return simulated response
             return f"Executed {action} operation with input: {action_input}"
     
-    def remove_last_interaction(self):
+    def rollback_last_interaction(self):
         """
         Remove the most recent user question and AI answer, used when user rejects AI suggestions
         """

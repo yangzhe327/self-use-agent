@@ -5,7 +5,8 @@ Project Command Processing Module
 import os
 import json
 import subprocess
-from typing import Dict, Any, Optional, Tuple
+import time
+from typing import Optional, Tuple
 from services.project_analyzer import ProjectAnalyzer
 from utils.helpers import find_executable, run_subprocess_command
 
@@ -19,28 +20,81 @@ class ProjectCommands:
         self.running_process: Optional[subprocess.Popen] = None
 
     def check_project_runnable(self) -> Tuple[bool, str]:
-        """Check if the project can be run"""
-        package_json_content = self.analyzer.read_file('package.json')
-        if not package_json_content:
-            return False, "package.json file not found in the project"
-        
+        """
+        Validate project runnability by actually attempting to start it
+        Returns a tuple of (success, message)
+        """
         try:
-            package_data = json.loads(package_json_content)
+            # Check if npm is available
+            npm_executable = find_executable('npm')
+            if not npm_executable:
+                return False, "npm command not found, please ensure Node.js is installed"
             
-            if 'scripts' not in package_data:
-                return False, "No scripts defined in package.json"
+            package_json_path = os.path.join(self.project_path, 'package.json')
+            if not os.path.exists(package_json_path):
+                return False, "package.json file not found in the project"
+                
+            with open(package_json_path, 'r', encoding='utf-8') as f:
+                package_data = json.load(f)
             
-            # Check for startup scripts
-            start_scripts = ['start', 'dev', 'serve']
-            for script in start_scripts:
-                if script in package_data['scripts']:
-                    return True, f"Project can be run using 'npm run {script}'"
+            # Determine run command
+            scripts = package_data.get('scripts', {})
+            run_cmd = None
+            script_name = None
+            if 'start' in scripts:
+                script_name = 'start'
+                run_cmd = [npm_executable, 'run', 'start']
+            elif 'dev' in scripts:
+                script_name = 'dev'
+                run_cmd = [npm_executable, 'run', 'dev']
+            elif 'serve' in scripts:
+                script_name = 'serve'
+                run_cmd = [npm_executable, 'run', 'serve']
+            else:
+                # If there are no predefined scripts, use the default startup command
+                # This is usually not a good sign if we reach here
+                return False, "No standard start script found in package.json"
             
-            return True, "Project contains npm scripts and can be run"
+            # Check if script is defined in package.json
+            if script_name not in scripts:
+                return False, f"'{script_name}' script is not defined in package.json"
+            
+            # Run the command in a non-blocking way but capture initial output
+            print(f"Testing project startup: {' '.join(run_cmd)}")
+            process = subprocess.Popen(
+                run_cmd,
+                cwd=self.project_path,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                shell=True
+            )
+            
+            # Give it a few seconds to see if there are any immediate errors
+            time.sleep(3)
+            
+            # Check if the process has already exited with an error
+            if process.poll() is not None and process.returncode != 0:
+                # Process has exited with an error
+                stderr_output = process.stderr.read()
+                return False, f"Project failed to start: {stderr_output}"
+            elif process.poll() is not None and process.returncode == 0:
+                # Process has exited successfully, which might be normal for some commands
+                return True, "Project command executed successfully"
+            else:
+                # Process is still running, which is a good sign
+                # Terminate the process as this was just a test
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                return True, "Project started successfully (process is running)"
+                
         except json.JSONDecodeError as e:
             return False, f"package.json file format error: {str(e)}"
         except Exception as e:
-            return False, f"Error checking project: {str(e)}"
+            return False, f"Error testing project run: {str(e)}"
 
     def install_dependencies(self) -> bool:
         """Install project dependencies"""
