@@ -63,13 +63,6 @@ class AIInteractor:
                             )
                     
                     self.messages.append({"role": "assistant", "content": content.strip()})
-
-                    # Check if it contains Final Answer, if so, return the final answer directly
-                    final_answer_match = re.search(r'Final Answer:\s*(.*)', content, re.DOTALL)
-                    if final_answer_match:
-                        # Extract content after Final Answer as the final result
-                        final_answer = final_answer_match.group(1).strip()
-                        return final_answer
                     
                     # Check if it contains Thought process
                     thought_match = re.search(r'Thought:\s*(.*?)(?:\n(?:Action|Final Answer):|$)', content, re.DOTALL | re.IGNORECASE)
@@ -77,6 +70,13 @@ class AIInteractor:
                         thought = thought_match.group(1).strip()
                         if thought:
                             print(f"Thought: {thought}")
+
+                    # Check if it contains Final Answer, if so, return the final answer directly
+                    final_answer_match = re.search(r'Final Answer:\s*(.*)', content, re.DOTALL)
+                    if final_answer_match:
+                        # Extract content after Final Answer as the final result
+                        final_answer = final_answer_match.group(1).strip()
+                        return final_answer
                     
                     # Check if it contains Action, support multiple formats such as "Action: FUNCTION(args)" or "Action: FUNCTION (args)"
                     action_match = re.search(r'Action:\s*(\w+)\s*\((.*?)\)', content, re.IGNORECASE)
