@@ -26,26 +26,6 @@ class FileOperator:
         return validate_file_path(file_path, base_path)
 
     @staticmethod
-    def backup_file(file_path: str) -> Optional[str]:
-        """
-        Create file backup
-        
-        Args:
-            file_path: The file path to backup
-            
-        Returns:
-            str: Backup file path, returns None if file does not exist
-        """
-        try:
-            if os.path.exists(file_path):
-                backup_path = file_path + ".backup"
-                shutil.copy2(file_path, backup_path)
-                return backup_path
-        except Exception as e:
-            raise FileOperationError(f"Failed to create file backup: {str(e)}")
-        return None
-
-    @staticmethod
     def write_code_to_file(file_path: str, code: str, project_path: Optional[str] = None) -> bool:
         """
         Safely write code to file
@@ -65,9 +45,6 @@ class FileOperator:
             
             # Create directory (if it doesn't exist)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            
-            # Create backup (if file already exists)
-            FileOperator.backup_file(file_path)
             
             # Write to file
             with open(file_path, 'w', encoding='utf-8') as f:

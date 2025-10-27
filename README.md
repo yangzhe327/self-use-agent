@@ -2,8 +2,9 @@
 
 ## Table of Contents
 - [Introduction](#introduction)
+- [Quick Start](#quick-start)
+- [Workflow](#workflow)
 - [Features](#features)
-- [Usage](#usage)
 - [Requirements](#requirements)
 - [Project Structure](#project-structure)
 - [Core Components](#core-components)
@@ -16,21 +17,7 @@
 
 Frontend Auto-modification Agent is an intelligent CLI tool designed to automate frontend project modifications using AI capabilities. It analyzes project structures, interacts with Qwen AI models, generates code suggestions, and safely applies changes to your project files with user confirmation.
 
-## Features
-
-### 1. Project Analysis
-Automatically analyzes frontend project structures and identifies key files and directories.
-
-### 2. AI-assisted Development
-Interacts with Qwen AI through ReAct mode to generate high-quality code modification suggestions.
-
-### 3. Safe File Operations
-All file operations are verified and automatically backed up to prevent accidental modifications.
-
-### 4. Project Runtime Management
-Supports one-click dependency installation and project execution.
-
-## Usage
+## Quick Start
 
 1. Install dependencies
    ```bash
@@ -49,11 +36,66 @@ Supports one-click dependency installation and project execution.
 
 4. Enter your project path when prompted and follow the interactive commands
 
+5. When prompted, choose whether to run the project or skip to modification mode directly
+
+6. Enter your requirements in natural language, review AI-generated suggestions, and confirm changes
+
+## Workflow
+
+The agent follows a structured workflow to ensure safe and effective project modifications:
+
+### 1. Initialization
+- Launch the agent with `python main.py`
+- Provide the path to your frontend project
+- Agent checks if the project can be run and offers to start it
+
+### 2. Project Analysis
+- Agent automatically analyzes your project structure
+- Identifies key files and directories
+- Builds context for AI to understand your project
+
+### 3. Requirement Input
+- Enter your modification requirements in natural language
+- Examples: "Add a dark mode toggle", "Create a contact form component", "Refactor the navigation menu"
+
+### 4. AI Processing (ReAct Pattern)
+The agent uses a ReAct (Reasoning + Action) pattern for processing your requests:
+- **Thought**: AI analyzes your requirement and plans the implementation
+- **Action**: AI performs actions like reading files or proposing changes
+- **Observation**: Agent observes results and adjusts approach if needed
+- **Final Answer**: AI presents the complete solution
+
+### 5. Review and Confirmation
+- Review AI-generated code suggestions
+- Approve or reject proposed changes
+- All file modifications require explicit user confirmation
+
+### 6. Implementation
+- Approved changes are safely applied to your project
+- Project structure is re-analyzed to maintain consistency
+
+### 7. Iteration
+- Continue entering new requirements or exit the agent
+- Run the updated project to see changes in effect
+
+## Features
+
+### 1. Project Analysis
+Automatically analyzes frontend project structures and identifies key files and directories.
+
+### 2. AI-assisted Development
+Interacts with Qwen AI through ReAct mode to generate high-quality code modification suggestions.
+
+### 3. Safe File Operations
+All file operations are verified to prevent accidental modifications.
+
+### 4. Project Runtime Management
+Supports one-click dependency installation and project execution.
+
 ## Requirements
 
 - Python 3.8+
 - Node.js
-- npm
 
 ## Project Structure
 
@@ -129,7 +171,6 @@ The application uses sensible defaults that can be customized in the [config.py]
 - Supports all frontend project types
 - Internet connection required for AI API calls
 - Code modifications require manual confirmation before applying
-- Project automatically re-analyzes structure after file modifications
 
 ## Troubleshooting
 

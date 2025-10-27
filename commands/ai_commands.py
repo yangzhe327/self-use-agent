@@ -157,10 +157,10 @@ class AICommands:
                 print(f"Error parsing reply: {e}")
         
         # Only re-analyze the project when the file structure changes
-        if structure_changed:
-            print("Detected file structure changes, re-analyzing project structure...")
-            self.project_info = self.analyzer.analyze()
-        elif files_changed:
-            print("File content updated.")
+        # if structure_changed:
+        #     print("Detected file structure changes, re-analyzing project structure...")
+        #     self.project_info = self.analyzer.analyze()
+        # elif files_changed:
+        #     print("File content updated.")
             
         print("Application completed!")

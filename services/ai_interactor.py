@@ -6,10 +6,13 @@ import dashscope
 import json
 import re
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from services.config import Config
 from exceptions.project_exceptions import AIInteractionError
 # Removed direct import of UIProjectAgent to avoid circular import
+
+if TYPE_CHECKING:
+    from agents.application import UIProjectAgent
 
 class AIInteractor:
     def __init__(self, api_key: Optional[str] = None):
@@ -17,7 +20,7 @@ class AIInteractor:
         if api_key:
             self.config.api_key = api_key
         self.messages: List[Dict[str, str]] = []
-        self.agent: "UIProjectAgent"  # Use string annotation to avoid circular import
+        self.agent: UIProjectAgent  # Use string annotation to avoid circular import
 
     def set_agent(self, agent):
         """Set agent reference to call actual actions"""

@@ -7,7 +7,6 @@ import json
 import subprocess
 import time
 from typing import Optional, Tuple
-from services.project_analyzer import ProjectAnalyzer
 from utils.helpers import find_executable, run_subprocess_command
 
 
@@ -16,7 +15,6 @@ class ProjectCommands:
     
     def __init__(self, project_path: str):
         self.project_path = project_path
-        self.analyzer = ProjectAnalyzer(project_path)
         self.running_process: Optional[subprocess.Popen] = None
 
     def check_project_runnable(self) -> Tuple[bool, str]:
